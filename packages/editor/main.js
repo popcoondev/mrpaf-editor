@@ -54,6 +54,38 @@ function renderLayers() {
   });
 }
 renderLayers();
+// Add Layer button
+document.getElementById('add-layer').addEventListener('click', () => {
+  const newId = `layer-${project.layers.length + 1}`;
+  const newLayer = {
+    id: newId,
+    type: 'pixel',
+    visible: true,
+    locked: false,
+    opacity: 1,
+    pixels: {
+      format: 'Array',
+      width,
+      height,
+      data: new Array(width * height).fill(0)
+    }
+  };
+  project.layers.push(newLayer);
+  currentLayerIndex = project.layers.length - 1;
+  renderLayers();
+  drawProject(ctx, project, palette);
+});
+// Remove Layer button
+document.getElementById('remove-layer').addEventListener('click', () => {
+  if (project.layers.length <= 1) {
+    alert('Cannot remove the last layer.');
+    return;
+  }
+  project.layers.splice(currentLayerIndex, 1);
+  currentLayerIndex = Math.max(0, currentLayerIndex - 1);
+  renderLayers();
+  drawProject(ctx, project, palette);
+});
 
 // Current tool state
 let tool = 'pen';
@@ -97,39 +129,7 @@ importFileInput.addEventListener('change', (e) => {
         // After import, reset to first layer
         currentLayerIndex = 0;
         renderPalette();
-renderLayers();
-// Add Layer button
-document.getElementById('add-layer').addEventListener('click', () => {
-  const newId = `layer-${project.layers.length + 1}`;
-  const newLayer = {
-    id: newId,
-    type: 'pixel',
-    visible: true,
-    locked: false,
-    opacity: 1,
-    pixels: {
-      format: 'Array',
-      width,
-      height,
-      data: new Array(width * height).fill(0)
-    }
-  };
-  project.layers.push(newLayer);
-  currentLayerIndex = project.layers.length - 1;
-  renderLayers();
-  drawProject(ctx, project, palette);
-});
-// Remove Layer button
-document.getElementById('remove-layer').addEventListener('click', () => {
-  if (project.layers.length <= 1) {
-    alert('Cannot remove the last layer.');
-    return;
-  }
-  project.layers.splice(currentLayerIndex, 1);
-  currentLayerIndex = Math.max(0, currentLayerIndex - 1);
-  renderLayers();
-  drawProject(ctx, project, palette);
-});
+        renderLayers();
         drawProject(ctx, project, palette);
     } catch (err) {
       alert('Error parsing JSON: ' + err);
