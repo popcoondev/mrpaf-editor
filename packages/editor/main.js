@@ -11,6 +11,8 @@ let project = createEmptyProject(width, height);
 let palette = project.palette;
 // Current tool and color index (0-based)
 let currentColorIndex = 0;
+// Current layer index (0-based)
+let currentLayerIndex = 0;
 
 // Initialize canvas
 const canvas = document.getElementById('canvas');
@@ -35,13 +37,30 @@ function renderPalette() {
   });
 }
 renderPalette();
+// Layer controls UI
+const layerList = document.getElementById('layer-list');
+function renderLayers() {
+  layerList.innerHTML = '';
+  project.layers.forEach((layer, idx) => {
+    const li = document.createElement('li');
+    li.textContent = layer.id;
+    li.style.cursor = 'pointer';
+    li.style.fontWeight = idx === currentLayerIndex ? 'bold' : 'normal';
+    li.addEventListener('click', () => {
+      currentLayerIndex = idx;
+      renderLayers();
+    });
+    layerList.appendChild(li);
+  });
+}
+renderLayers();
 
 // Current tool state
 let tool = 'pen';
 document.getElementById('pen').addEventListener('click', () => tool = 'pen');
 document.getElementById('eraser').addEventListener('click', () => tool = 'eraser');
 document.getElementById('clear').addEventListener('click', () => {
-  project.layers[0].pixels.data.fill(0);
+  project.layers[currentLayerIndex].pixels.data.fill(0);
   drawProject(ctx, project, palette);
 });
 document.getElementById('export').addEventListener('click', () => {
@@ -64,19 +83,54 @@ importFileInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const imported = JSON.parse(reader.result);
-      if (!imported.canvas || !imported.layers) {
-        alert('Invalid MRPAF JSON.');
-        return;
-      }
-      project = imported;
-      width = project.canvas.width;
-      height = project.canvas.height;
-      palette = project.palette;
-      renderPalette();
-      drawProject(ctx, project, palette);
+    reader.onload = () => {
+      try {
+        const imported = JSON.parse(reader.result);
+        if (!imported.canvas || !imported.layers) {
+          alert('Invalid MRPAF JSON.');
+          return;
+        }
+        project = imported;
+        width = project.canvas.width;
+        height = project.canvas.height;
+        palette = project.palette;
+        // After import, reset to first layer
+        currentLayerIndex = 0;
+        renderPalette();
+renderLayers();
+// Add Layer button
+document.getElementById('add-layer').addEventListener('click', () => {
+  const newId = `layer-${project.layers.length + 1}`;
+  const newLayer = {
+    id: newId,
+    type: 'pixel',
+    visible: true,
+    locked: false,
+    opacity: 1,
+    pixels: {
+      format: 'Array',
+      width,
+      height,
+      data: new Array(width * height).fill(0)
+    }
+  };
+  project.layers.push(newLayer);
+  currentLayerIndex = project.layers.length - 1;
+  renderLayers();
+  drawProject(ctx, project, palette);
+});
+// Remove Layer button
+document.getElementById('remove-layer').addEventListener('click', () => {
+  if (project.layers.length <= 1) {
+    alert('Cannot remove the last layer.');
+    return;
+  }
+  project.layers.splice(currentLayerIndex, 1);
+  currentLayerIndex = Math.max(0, currentLayerIndex - 1);
+  renderLayers();
+  drawProject(ctx, project, palette);
+});
+        drawProject(ctx, project, palette);
     } catch (err) {
       alert('Error parsing JSON: ' + err);
     }
@@ -94,10 +148,10 @@ canvas.addEventListener('click', (e) => {
   const idx = y * width + x;
   if (tool === 'pen') {
     // Set pixel to selected color (1-based index)
-    project.layers[0].pixels.data[idx] = currentColorIndex + 1;
+    project.layers[currentLayerIndex].pixels.data[idx] = currentColorIndex + 1;
   } else if (tool === 'eraser') {
     // Clear pixel
-    project.layers[0].pixels.data[idx] = 0;
+    project.layers[currentLayerIndex].pixels.data[idx] = 0;
   }
   drawProject(ctx, project, palette);
 });
