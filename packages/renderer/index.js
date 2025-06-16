@@ -2,10 +2,6 @@
 export function drawProject(ctx, project, palette = []) {
   const width = project.canvas.width;
   const height = project.canvas.height;
-  // Find first pixel layer
-  const pixelLayer = project.layers.find(l => l.type === "pixel");
-  if (!pixelLayer || !pixelLayer.pixels || !pixelLayer.pixels.data) return;
-  const data = pixelLayer.pixels.data;
   // Determine pixel size to fit canvas
   const pixelSize = Math.floor(Math.min(ctx.canvas.width / width, ctx.canvas.height / height));
   // Clear canvas
@@ -24,17 +20,22 @@ export function drawProject(ctx, project, palette = []) {
     ctx.lineTo(width * pixelSize, y * pixelSize);
     ctx.stroke();
   }
-  // Draw pixels
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const idx = y * width + x;
-      const val = data[idx];
-      // data value 0 = empty, values 1..n map to palette[0..n-1]
-      if (val > 0) {
-        const color = palette[val - 1] || '#000';
-        ctx.fillStyle = color;
-        ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+  // Draw pixel layers in order
+  project.layers.forEach(layer => {
+    if (layer.type !== 'pixel' || !layer.visible || !layer.pixels || !layer.pixels.data) return;
+    const data = layer.pixels.data;
+    ctx.globalAlpha = layer.opacity != null ? layer.opacity : 1;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = y * width + x;
+        const val = data[idx];
+        if (val > 0) {
+          const color = palette[val - 1] || '#000';
+          ctx.fillStyle = color;
+          ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+        }
       }
     }
-  }
+    ctx.globalAlpha = 1;
+  });
 }
