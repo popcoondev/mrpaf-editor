@@ -38,8 +38,9 @@
  The initial MVP provides a minimal, working pixel art editor with basic functionality:
 1. Canvas with configurable resolution (default 16×16).
 2. Pen and eraser tools to toggle pixels, with color palette selection.
- 3. Clear canvas.
- 4. Export project as MRPAF JSON file.
+3. Clear canvas.
+4. Export project as MRPAF JSON file.
+5. Import MRPAF JSON (読み込み) 機能.
 
  To run the MVP:
  - Serve the repository root over a simple HTTP server (e.g., `python3 -m http.server`).
