@@ -43,13 +43,38 @@ function renderLayers() {
   layerList.innerHTML = '';
   project.layers.forEach((layer, idx) => {
     const li = document.createElement('li');
-    li.textContent = layer.id;
-    li.style.cursor = 'pointer';
-    li.style.fontWeight = idx === currentLayerIndex ? 'bold' : 'normal';
-    li.addEventListener('click', () => {
+    // Visibility toggle
+    const visCheckbox = document.createElement('input');
+    visCheckbox.type = 'checkbox';
+    visCheckbox.checked = layer.visible;
+    visCheckbox.addEventListener('change', () => {
+      layer.visible = visCheckbox.checked;
+      drawProject(ctx, project, palette);
+    });
+    li.appendChild(visCheckbox);
+    // Layer name / select
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = layer.id;
+    nameSpan.style.cursor = 'pointer';
+    nameSpan.style.fontWeight = idx === currentLayerIndex ? 'bold' : 'normal';
+    nameSpan.addEventListener('click', () => {
       currentLayerIndex = idx;
       renderLayers();
     });
+    li.appendChild(nameSpan);
+    // Opacity control
+    const opacityInput = document.createElement('input');
+    opacityInput.type = 'range';
+    opacityInput.min = 0;
+    opacityInput.max = 1;
+    opacityInput.step = 0.1;
+    opacityInput.value = layer.opacity != null ? layer.opacity : 1;
+    opacityInput.style.marginLeft = '8px';
+    opacityInput.addEventListener('input', () => {
+      layer.opacity = parseFloat(opacityInput.value);
+      drawProject(ctx, project, palette);
+    });
+    li.appendChild(opacityInput);
     layerList.appendChild(li);
   });
 }

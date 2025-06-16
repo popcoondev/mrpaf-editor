@@ -47,7 +47,12 @@
  - Serve the repository root over a simple HTTP server (e.g., `python3 -m http.server`).
  - Open `packages/editor/index.html` in your browser.
 
- Future MVP iterations will add file IO, multi-layer support, and more editor tools.
+ Future MVP iterations will add additional functionality:
+ - Layer reordering, renaming, visibility toggling, and opacity adjustments
+ - Basic file IO (open/save projects on disk)
+ - Color picker and bucket fill tools
+ - Undo/redo support
+ - Zoom and pan
 
  ---
 
