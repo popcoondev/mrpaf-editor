@@ -4,14 +4,36 @@ import { drawProject } from '../renderer/index.js';
 // Configuration
 const width = 16;
 const height = 16;
-const palette = ['#000000']; // value 1 => #000, only one color for now
 
 // Create a new project
 const project = createEmptyProject(width, height);
+// Palette comes from project; data values map 1..n to palette[0..n-1]
+const palette = project.palette;
+// Current tool and color index (0-based)
+let currentColorIndex = 0;
 
 // Initialize canvas
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+// Render color palette UI
+const paletteContainer = document.getElementById('palette');
+palette.forEach((color, idx) => {
+  const swatch = document.createElement('button');
+  swatch.style.backgroundColor = color;
+  swatch.style.width = '24px';
+  swatch.style.height = '24px';
+  swatch.style.margin = '2px';
+  swatch.style.border = idx === currentColorIndex ? '2px solid #000' : '1px solid #888';
+  swatch.title = `Color ${idx + 1}`;
+  swatch.addEventListener('click', () => {
+    currentColorIndex = idx;
+    // Update selection border
+    Array.from(paletteContainer.children).forEach((btn, bidx) => {
+      btn.style.border = bidx === currentColorIndex ? '2px solid #000' : '1px solid #888';
+    });
+  });
+  paletteContainer.appendChild(swatch);
+});
 
 // Current tool state
 let tool = 'pen';
@@ -42,8 +64,10 @@ canvas.addEventListener('click', (e) => {
   const y = Math.floor((e.clientY - rect.top) / pixelSize);
   const idx = y * width + x;
   if (tool === 'pen') {
-    project.layers[0].pixels.data[idx] = 1;
+    // Set pixel to selected color (1-based index)
+    project.layers[0].pixels.data[idx] = currentColorIndex + 1;
   } else if (tool === 'eraser') {
+    // Clear pixel
     project.layers[0].pixels.data[idx] = 0;
   }
   drawProject(ctx, project, palette);

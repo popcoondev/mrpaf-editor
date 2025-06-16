@@ -5,7 +5,8 @@ export function createEmptyProject(width = 16, height = 16) {
     metadata: {},
     coordinateSystem: { xOffset: 0, yOffset: 0 },
     canvas: { width, height },
-    palette: [],
+    // Default palette: black, red, green, blue
+    palette: ['#000000', '#FF0000', '#00FF00', '#0000FF'],
     layers: [
       {
         id: "layer-1",

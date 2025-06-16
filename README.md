@@ -36,8 +36,8 @@
  ## MVP
 
  The initial MVP provides a minimal, working pixel art editor with basic functionality:
- 1. Canvas with configurable resolution (default 16×16).
- 2. Pen and eraser tools to toggle pixels.
+1. Canvas with configurable resolution (default 16×16).
+2. Pen and eraser tools to toggle pixels, with color palette selection.
  3. Clear canvas.
  4. Export project as MRPAF JSON file.
 
