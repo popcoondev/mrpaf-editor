@@ -29,8 +29,10 @@ export function drawProject(ctx, project, palette = []) {
     for (let x = 0; x < width; x++) {
       const idx = y * width + x;
       const val = data[idx];
-      if (val) {
-        ctx.fillStyle = palette[val] || '#000';
+      // data value 0 = empty, values 1..n map to palette[0..n-1]
+      if (val > 0) {
+        const color = palette[val - 1] || '#000';
+        ctx.fillStyle = color;
         ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
       }
     }
