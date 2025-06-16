@@ -41,6 +41,7 @@
 3. Clear canvas.
 4. Export project as MRPAF JSON file.
 5. Import MRPAF JSON (読み込み) 機能.
+6. Multi-layer support with Add/Remove layer controls.
 
  To run the MVP:
  - Serve the repository root over a simple HTTP server (e.g., `python3 -m http.server`).
