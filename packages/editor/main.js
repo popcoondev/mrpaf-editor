@@ -267,27 +267,23 @@ document.getElementById('add-image-layer').addEventListener('click', () => {
 importImageFile.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    pushHistory();
-    const dataURL = reader.result;
-    const newId = `image-layer-${project.layers.length + 1}`;
-    const newLayer = {
-      id: newId,
-      type: 'image',
-      visible: true,
-      locked: false,
-      opacity: 1,
-      source: { uri: dataURL }
-    };
-    // Insert as background layer (bottom of stack)
-    project.layers.unshift(newLayer);
-    // Select the new background layer
-    currentLayerIndex = 0;
-    renderLayers();
-    renderCanvas();
+  // Use Object URL for reliable loading across browsers
+  pushHistory();
+  const objectUrl = URL.createObjectURL(file);
+  const newId = `image-layer-${project.layers.length + 1}`;
+  const newLayer = {
+    id: newId,
+    type: 'image',
+    visible: true,
+    locked: false,
+    opacity: 1,
+    source: { uri: objectUrl }
   };
-  reader.readAsDataURL(file);
+  // Insert as background layer (bottom of stack)
+  project.layers.unshift(newLayer);
+  currentLayerIndex = 0;
+  renderLayers();
+  renderCanvas();
 });
 
 // Current tool state
