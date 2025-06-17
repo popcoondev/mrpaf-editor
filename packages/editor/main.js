@@ -88,6 +88,38 @@ function renderLayers() {
       }
     });
     li.appendChild(renameBtn);
+    // Reorder controls
+    const upBtn = document.createElement('button');
+    upBtn.textContent = '↑';
+    upBtn.style.marginLeft = '4px';
+    upBtn.disabled = idx === 0;
+    upBtn.title = 'Move layer up';
+    upBtn.addEventListener('click', () => {
+      if (idx > 0) {
+        const layers = project.layers;
+        [layers[idx - 1], layers[idx]] = [layers[idx], layers[idx - 1]];
+        currentLayerIndex = idx - 1;
+        renderLayers();
+        drawProject(ctx, project, palette);
+      }
+    });
+    li.appendChild(upBtn);
+    const downBtn = document.createElement('button');
+    downBtn.textContent = '↓';
+    downBtn.style.marginLeft = '4px';
+    downBtn.disabled = idx === project.layers.length - 1;
+    downBtn.title = 'Move layer down';
+    downBtn.addEventListener('click', () => {
+      if (idx < project.layers.length - 1) {
+        const layers = project.layers;
+        [layers[idx], layers[idx + 1]] = [layers[idx + 1], layers[idx]];
+        currentLayerIndex = idx + 1;
+        renderLayers();
+        drawProject(ctx, project, palette);
+      }
+    });
+    li.appendChild(downBtn);
+    // Append opacity slider after reorder
     li.appendChild(opacityInput);
     layerList.appendChild(li);
   });
