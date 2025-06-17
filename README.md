@@ -75,6 +75,7 @@
 - [x] Configurable canvas resolution
  - [x] Line drawing tool
 
+ - [x] Background image layer support
  **Remaining features to implement:**
  - Onion Skin support
  - Symmetry tool
