@@ -75,7 +75,12 @@
 - [x] Configurable canvas resolution
  - [x] Line drawing tool
 
- **Remaining features to implement:**
-- None
+  **Remaining features to implement:**
+ - Background image layer support
+ - Onion Skin support
+ - Symmetry tool
+ - Brush presets
+ - Animation timeline preview
+ - PNG/GIF export
  
  *Generated and maintained by the AI agent during development to ensure context continuity.*
