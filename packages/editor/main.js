@@ -162,6 +162,8 @@ document.getElementById('remove-layer').addEventListener('click', () => {
 let tool = 'pen';
 document.getElementById('pen').addEventListener('click', () => tool = 'pen');
 document.getElementById('eraser').addEventListener('click', () => tool = 'eraser');
+document.getElementById('color-picker').addEventListener('click', () => tool = 'colorpicker');
+document.getElementById('bucket').addEventListener('click', () => tool = 'bucket');
 document.getElementById('clear').addEventListener('click', () => {
   project.layers[currentLayerIndex].pixels.data.fill(0);
   drawProject(ctx, project, palette);
@@ -223,6 +225,42 @@ canvas.addEventListener('click', (e) => {
   } else if (tool === 'eraser') {
     // Clear pixel
     project.layers[currentLayerIndex].pixels.data[idx] = 0;
+  } else if (tool === 'colorpicker') {
+    // Pick color from topmost visible layer at clicked pixel
+    let picked = 0;
+    for (let li = project.layers.length - 1; li >= 0; li--) {
+      const layer = project.layers[li];
+      if (layer.visible && layer.pixels && layer.pixels.data) {
+        const val = layer.pixels.data[idx];
+        if (val > 0) { picked = val - 1; break; }
+      }
+    }
+    currentColorIndex = picked;
+    renderPalette();
+  } else if (tool === 'bucket') {
+    // Flood fill on current layer
+    const layer = project.layers[currentLayerIndex];
+    if (layer.pixels && layer.pixels.data) {
+      const data = layer.pixels.data;
+      const target = data[idx];
+      const replacement = currentColorIndex + 1;
+      if (target !== replacement) {
+        const w = width;
+        const h = height;
+        const stack = [idx];
+        while (stack.length) {
+          const i = stack.pop();
+          if (data[i] !== target) continue;
+          data[i] = replacement;
+          const x0 = i % w;
+          const y0 = Math.floor(i / w);
+          if (x0 > 0) stack.push(i - 1);
+          if (x0 < w - 1) stack.push(i + 1);
+          if (y0 > 0) stack.push(i - w);
+          if (y0 < h - 1) stack.push(i + w);
+        }
+      }
+    }
   }
   drawProject(ctx, project, palette);
 });
