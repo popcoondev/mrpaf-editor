@@ -278,8 +278,10 @@ importImageFile.addEventListener('change', (e) => {
       opacity: 1,
       source: { uri: dataURL }
     };
-    project.layers.push(newLayer);
-    currentLayerIndex = project.layers.length - 1;
+    // Insert as background layer (bottom of stack)
+    project.layers.unshift(newLayer);
+    // Select the new background layer
+    currentLayerIndex = 0;
     renderLayers();
     renderCanvas();
   };
