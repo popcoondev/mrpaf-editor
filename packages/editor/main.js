@@ -255,6 +255,36 @@ document.getElementById('remove-layer').addEventListener('click', () => {
   renderLayers();
   renderCanvas();
 });
+// Add Image Layer button
+const importImageFile = document.getElementById('import-image-file');
+document.getElementById('add-image-layer').addEventListener('click', () => {
+  importImageFile.value = '';
+  importImageFile.click();
+});
+// Handle background image import
+importImageFile.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    pushHistory();
+    const dataURL = reader.result;
+    const newId = `image-layer-${project.layers.length + 1}`;
+    const newLayer = {
+      id: newId,
+      type: 'image',
+      visible: true,
+      locked: false,
+      opacity: 1,
+      source: { uri: dataURL }
+    };
+    project.layers.push(newLayer);
+    currentLayerIndex = project.layers.length - 1;
+    renderLayers();
+    renderCanvas();
+  };
+  reader.readAsDataURL(file);
+});
 
 // Current tool state
 let tool = 'pen';
