@@ -41,22 +41,19 @@
 3. Clear canvas.
 4. Export project as MRPAF JSON file.
 5. Import MRPAF JSON (読み込み) 機能.
-6. Multi-layer support with Add/Remove layer controls, layer renaming, visibility toggling, opacity adjustments, and layer reordering.
-7. Color picker tool to pick existing colors from canvas.
+6. Multi-layer support with add/remove layer controls, layer renaming, visibility toggling, opacity adjustments, and layer reordering.
+7. Color picker tool to pick existing colors from the canvas.
 8. Bucket fill tool to flood fill contiguous regions.
-9. Basic file IO: Save/Load projects in local storage.
+9. Basic file IO: save/load projects in local storage.
 10. Zoom and pan support: canvas zoom controls and pan tool.
 11. Palette editor: add/remove and rename palette colors via UI.
 12. Brush size control for pen and eraser tools.
-10. Zoom and pan support: canvas zoom controls and pan tool.
+13. Line drawing tool.
 
  To run the MVP:
  - Serve the repository root over a simple HTTP server (e.g., `python3 -m http.server`).
  - Open `packages/editor/index.html` in your browser.
 
- Future MVP iterations will add additional functionality:
- - 
- - - Zoom and pan
 
  ---
 

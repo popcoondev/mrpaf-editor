@@ -258,6 +258,29 @@ document.getElementById('remove-layer').addEventListener('click', () => {
 
 // Current tool state
 let tool = 'pen';
+// For line tool: store starting point
+let lineStart = null;
+// Draw a straight line on the current layer using Bresenham's algorithm
+function drawLine(x0, y0, x1, y1) {
+  const layer = project.layers[currentLayerIndex];
+  if (!layer.pixels || !layer.pixels.data) return;
+  const data = layer.pixels.data;
+  const w = width;
+  const h = height;
+  const value = currentColorIndex + 1;
+  let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+  let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  while (true) {
+    if (x0 >= 0 && x0 < w && y0 >= 0 && y0 < h) {
+      data[y0 * w + x0] = value;
+    }
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x0 += sx; }
+    if (e2 <= dx) { err += dx; y0 += sy; }
+  }
+}
 document.getElementById('pen').addEventListener('click', () => tool = 'pen');
 document.getElementById('eraser').addEventListener('click', () => tool = 'eraser');
 document.getElementById('line').addEventListener('click', () => { tool = 'line'; lineStart = null; });
