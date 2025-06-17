@@ -76,8 +76,9 @@
  - [x] Palette editor (add/remove, rename)
 - [x] Brush size control
 - [x] Configurable canvas resolution
+ - [x] Line drawing tool
 
  **Remaining features to implement:**
- 1. Line drawing tool (branch: feature/line-tool)
+- None
  
  *Generated and maintained by the AI agent during development to ensure context continuity.*
