@@ -47,6 +47,7 @@
 9. Basic file IO: Save/Load projects in local storage.
 10. Zoom and pan support: canvas zoom controls and pan tool.
 11. Palette editor: add/remove and rename palette colors via UI.
+12. Brush size control for pen and eraser tools.
 10. Zoom and pan support: canvas zoom controls and pan tool.
 
  To run the MVP:
