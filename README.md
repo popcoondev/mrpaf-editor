@@ -76,7 +76,8 @@
   - [x] Line drawing tool
   - [x] Background image layer support
 
- **Remaining features to implement:**
+**Remaining features to implement:**
+ - Multi-resolution layer rendering (branch: feature/multi-resolution-rendering)
  - Onion Skin support (branch: feature/onion-skin-support)
  - Symmetry tool
  - Brush presets
