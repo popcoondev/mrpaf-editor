@@ -74,11 +74,12 @@ function renderLayers() {
       layer.opacity = parseFloat(opacityInput.value);
       drawProject(ctx, project, palette);
     });
-    li.appendChild(opacityInput);
-    // Rename control
+    // Rename control (placed before opacity for visibility)
     const renameBtn = document.createElement('button');
     renameBtn.textContent = 'Rename';
     renameBtn.style.marginLeft = '8px';
+    renameBtn.style.backgroundColor = '#eee';
+    renameBtn.style.border = '1px solid #ccc';
     renameBtn.addEventListener('click', () => {
       const newName = prompt('Enter new layer name:', layer.id);
       if (newName != null && newName.trim()) {
@@ -87,6 +88,7 @@ function renderLayers() {
       }
     });
     li.appendChild(renameBtn);
+    li.appendChild(opacityInput);
     layerList.appendChild(li);
   });
 }
