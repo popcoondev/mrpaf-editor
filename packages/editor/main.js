@@ -6,7 +6,15 @@ let width = 16;
 let height = 16;
 
 // Create a new project
+// Initialize project and per-layer grid toggles
 let project = createEmptyProject(width, height);
+// Grid visibility toggles per layer (editor-only state)
+let layerGridToggles = [];
+function syncLayerGridToggles() {
+  // preserve existing toggles where possible
+  layerGridToggles = project.layers.map((_, idx) => layerGridToggles[idx] || false);
+}
+syncLayerGridToggles();
 // History stacks for undo/redo
 let undoStack = [];
 let redoStack = [];
@@ -44,6 +52,7 @@ document.getElementById('set-resolution').addEventListener('click', () => {
   width = newWidth;
   height = newHeight;
   project = createEmptyProject(width, height);
+  syncLayerGridToggles();
   undoStack = [];
   redoStack = [];
   currentColorIndex = 0;
@@ -70,6 +79,36 @@ function renderCanvas() {
   ctx.translate(panX, panY);
   ctx.scale(zoom, zoom);
   drawProject(ctx, project, palette);
+  // Draw per-layer grid overlays
+  // Compute base pixel size (before zoom transform)
+  const baseW = project.canvas.width;
+  const baseH = project.canvas.height;
+  const pixelSize = Math.floor(Math.min(ctx.canvas.width / baseW, ctx.canvas.height / baseH));
+  layerGridToggles.forEach((show, idx) => {
+    if (!show) return;
+    const layer = project.layers[idx];
+    if (!layer) return;
+    const res = layer.resolution || { pixelArraySize: { width: baseW, height: baseH }, scale: 1 };
+    const arr = res.pixelArraySize;
+    const scale = res.scale;
+    const offset = layer.placement || { x: 0, y: 0 };
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 1;
+    // Vertical lines
+    for (let x = 0; x <= arr.width; x++) {
+      const gx = (offset.x + x * scale) * pixelSize;
+      const y0 = offset.y * pixelSize;
+      const y1 = (offset.y + arr.height * scale) * pixelSize;
+      ctx.beginPath(); ctx.moveTo(gx, y0); ctx.lineTo(gx, y1); ctx.stroke();
+    }
+    // Horizontal lines
+    for (let y = 0; y <= arr.height; y++) {
+      const gy = (offset.y + y * scale) * pixelSize;
+      const x0 = offset.x * pixelSize;
+      const x1 = (offset.x + arr.width * scale) * pixelSize;
+      ctx.beginPath(); ctx.moveTo(x0, gy); ctx.lineTo(x1, gy); ctx.stroke();
+    }
+  });
 }
 // Render color palette UI
 const paletteContainer = document.getElementById('palette');
@@ -129,6 +168,8 @@ document.getElementById('remove-color').addEventListener('click', () => {
 // Layer controls UI
 const layerList = document.getElementById('layer-list');
 function renderLayers() {
+  // Ensure grid toggles array matches current layers
+  syncLayerGridToggles();
   layerList.innerHTML = '';
   project.layers.forEach((layer, idx) => {
     const li = document.createElement('li');
@@ -142,6 +183,17 @@ function renderLayers() {
       renderCanvas();
     });
     li.appendChild(visCheckbox);
+    // Grid toggle per layer
+    const gridCheckbox = document.createElement('input');
+    gridCheckbox.type = 'checkbox';
+    gridCheckbox.checked = layerGridToggles[idx];
+    gridCheckbox.title = 'Toggle grid overlay';
+    gridCheckbox.style.marginLeft = '4px';
+    gridCheckbox.addEventListener('change', () => {
+      layerGridToggles[idx] = gridCheckbox.checked;
+      renderCanvas();
+    });
+    li.appendChild(gridCheckbox);
     // Layer name / select
     const nameSpan = document.createElement('span');
     nameSpan.textContent = layer.id;
@@ -289,6 +341,7 @@ document.getElementById('add-layer').addEventListener('click', () => {
   };
   project.layers.push(newLayer);
   currentLayerIndex = project.layers.length - 1;
+  syncLayerGridToggles();
   renderLayers();
   renderCanvas();
 });
@@ -302,6 +355,7 @@ document.getElementById('remove-layer').addEventListener('click', () => {
   pushHistory();
   project.layers.splice(currentLayerIndex, 1);
   currentLayerIndex = Math.max(0, currentLayerIndex - 1);
+  syncLayerGridToggles();
   renderLayers();
   renderCanvas();
 });
@@ -374,6 +428,7 @@ importFileInput.addEventListener('change', (e) => {
           return;
         }
         project = imported;
+        syncLayerGridToggles();
         width = project.canvas.width;
         height = project.canvas.height;
         palette = project.palette;
@@ -394,6 +449,7 @@ document.getElementById('undo').addEventListener('click', () => {
   if (undoStack.length > 0) {
     redoStack.push(JSON.stringify(project));
     project = JSON.parse(undoStack.pop());
+    syncLayerGridToggles();
     width = project.canvas.width;
     height = project.canvas.height;
     palette = project.palette;
@@ -407,6 +463,7 @@ document.getElementById('redo').addEventListener('click', () => {
   if (redoStack.length > 0) {
     undoStack.push(JSON.stringify(project));
     project = JSON.parse(redoStack.pop());
+    syncLayerGridToggles();
     width = project.canvas.width;
     height = project.canvas.height;
     palette = project.palette;
