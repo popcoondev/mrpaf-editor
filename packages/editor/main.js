@@ -264,6 +264,35 @@ document.getElementById('redo').addEventListener('click', () => {
 });
 // Initialize Undo/Redo button states
 updateUndoRedoButtons();
+// LocalStorage Save/Load
+document.getElementById('save-local').addEventListener('click', () => {
+  localStorage.setItem('mrpaf-project', JSON.stringify(project));
+  alert('Project saved locally.');
+});
+document.getElementById('load-local').addEventListener('click', () => {
+  const data = localStorage.getItem('mrpaf-project');
+  if (!data) {
+    alert('No saved project found.');
+    return;
+  }
+  try {
+    const imported = JSON.parse(data);
+    if (!imported.canvas || !imported.layers) {
+      alert('Invalid saved project.');
+      return;
+    }
+    pushHistory();
+    project = imported;
+    width = project.canvas.width;
+    height = project.canvas.height;
+    palette = project.palette;
+    renderPalette();
+    renderLayers();
+    drawProject(ctx, project, palette);
+  } catch (err) {
+    alert('Error loading project: ' + err);
+  }
+});
 
 
 // Handle canvas clicks
