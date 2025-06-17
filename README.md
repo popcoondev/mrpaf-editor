@@ -55,9 +55,29 @@
  - Open `packages/editor/index.html` in your browser.
 
  Future MVP iterations will add additional functionality:
-- 
-- - Zoom and pan
- 
+ - 
+ - - Zoom and pan
+
  ---
 
+ ## Progress
+
+ **Implemented MVP features:**
+ - [x] Canvas with default resolution (16×16)
+ - [x] Pen and eraser tools, color palette selection
+ - [x] Clear canvas
+ - [x] Export project as MRPAF JSON
+ - [x] Import MRPAF JSON
+ - [x] Multi-layer support (add/remove, rename, visibility, opacity, reorder)
+ - [x] Color picker tool
+ - [x] Bucket fill tool
+ - [x] Basic file IO: Save/Load in local storage
+ - [x] Zoom and pan support
+ - [x] Palette editor (add/remove, rename)
+- [x] Brush size control
+- [x] Configurable canvas resolution
+
+ **Remaining features to implement:**
+ 1. Line drawing tool (branch: feature/line-tool)
+ 
  *Generated and maintained by the AI agent during development to ensure context continuity.*
