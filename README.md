@@ -41,14 +41,14 @@
 3. Clear canvas.
 4. Export project as MRPAF JSON file.
 5. Import MRPAF JSON (読み込み) 機能.
-6. Multi-layer support with Add/Remove layer controls.
+6. Multi-layer support with Add/Remove layer controls, layer renaming, visibility toggling, and opacity adjustments.
 
  To run the MVP:
  - Serve the repository root over a simple HTTP server (e.g., `python3 -m http.server`).
  - Open `packages/editor/index.html` in your browser.
 
  Future MVP iterations will add additional functionality:
- - Layer reordering, renaming, visibility toggling, and opacity adjustments
+- Layer reordering
  - Basic file IO (open/save projects on disk)
  - Color picker and bucket fill tools
  - Undo/redo support
