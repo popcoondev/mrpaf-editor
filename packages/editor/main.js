@@ -75,6 +75,18 @@ function renderLayers() {
       drawProject(ctx, project, palette);
     });
     li.appendChild(opacityInput);
+    // Rename control
+    const renameBtn = document.createElement('button');
+    renameBtn.textContent = 'Rename';
+    renameBtn.style.marginLeft = '8px';
+    renameBtn.addEventListener('click', () => {
+      const newName = prompt('Enter new layer name:', layer.id);
+      if (newName != null && newName.trim()) {
+        layer.id = newName.trim();
+        renderLayers();
+      }
+    });
+    li.appendChild(renameBtn);
     layerList.appendChild(li);
   });
 }
