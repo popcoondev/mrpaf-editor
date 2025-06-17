@@ -260,6 +260,7 @@ document.getElementById('remove-layer').addEventListener('click', () => {
 let tool = 'pen';
 document.getElementById('pen').addEventListener('click', () => tool = 'pen');
 document.getElementById('eraser').addEventListener('click', () => tool = 'eraser');
+document.getElementById('line').addEventListener('click', () => { tool = 'line'; lineStart = null; });
 document.getElementById('color-picker').addEventListener('click', () => tool = 'colorpicker');
 document.getElementById('bucket').addEventListener('click', () => tool = 'bucket');
 document.getElementById('clear').addEventListener('click', () => {
@@ -469,6 +470,15 @@ canvas.addEventListener('click', (e) => {
           if (y0 < h - 1) stack.push(i + w);
         }
       }
+    }
+  } else if (tool === 'line') {
+    // Draw line on current layer between two clicks
+    if (lineStart == null) {
+      lineStart = { x, y };
+    } else {
+      pushHistory();
+      drawLine(lineStart.x, lineStart.y, x, y);
+      lineStart = null;
     }
   }
   renderCanvas();
