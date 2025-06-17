@@ -7,6 +7,20 @@ let height = 16;
 
 // Create a new project
 let project = createEmptyProject(width, height);
+// History stacks for undo/redo
+let undoStack = [];
+let redoStack = [];
+// Update Undo/Redo button states
+function updateUndoRedoButtons() {
+  document.getElementById('undo').disabled = undoStack.length === 0;
+  document.getElementById('redo').disabled = redoStack.length === 0;
+}
+// Push current state to undo stack and clear redo stack
+function pushHistory() {
+  undoStack.push(JSON.stringify(project));
+  redoStack = [];
+  updateUndoRedoButtons();
+}
 // Palette comes from project; data values map 1..n to palette[0..n-1]
 let palette = project.palette;
 // Current tool and color index (0-based)
@@ -48,6 +62,7 @@ function renderLayers() {
     visCheckbox.type = 'checkbox';
     visCheckbox.checked = layer.visible;
     visCheckbox.addEventListener('change', () => {
+      pushHistory();
       layer.visible = visCheckbox.checked;
       drawProject(ctx, project, palette);
     });
@@ -71,6 +86,7 @@ function renderLayers() {
     opacityInput.value = layer.opacity != null ? layer.opacity : 1;
     opacityInput.style.marginLeft = '8px';
     opacityInput.addEventListener('input', () => {
+      pushHistory();
       layer.opacity = parseFloat(opacityInput.value);
       drawProject(ctx, project, palette);
     });
@@ -83,6 +99,7 @@ function renderLayers() {
     renameBtn.addEventListener('click', () => {
       const newName = prompt('Enter new layer name:', layer.id);
       if (newName != null && newName.trim()) {
+        pushHistory();
         layer.id = newName.trim();
         renderLayers();
       }
@@ -96,6 +113,7 @@ function renderLayers() {
     upBtn.title = 'Move layer up';
     upBtn.addEventListener('click', () => {
       if (idx > 0) {
+        pushHistory();
         const layers = project.layers;
         [layers[idx - 1], layers[idx]] = [layers[idx], layers[idx - 1]];
         currentLayerIndex = idx - 1;
@@ -111,6 +129,7 @@ function renderLayers() {
     downBtn.title = 'Move layer down';
     downBtn.addEventListener('click', () => {
       if (idx < project.layers.length - 1) {
+        pushHistory();
         const layers = project.layers;
         [layers[idx], layers[idx + 1]] = [layers[idx + 1], layers[idx]];
         currentLayerIndex = idx + 1;
@@ -127,6 +146,8 @@ function renderLayers() {
 renderLayers();
 // Add Layer button
 document.getElementById('add-layer').addEventListener('click', () => {
+  // Save state for undo
+  pushHistory();
   const newId = `layer-${project.layers.length + 1}`;
   const newLayer = {
     id: newId,
@@ -152,6 +173,8 @@ document.getElementById('remove-layer').addEventListener('click', () => {
     alert('Cannot remove the last layer.');
     return;
   }
+  // Save state for undo
+  pushHistory();
   project.layers.splice(currentLayerIndex, 1);
   currentLayerIndex = Math.max(0, currentLayerIndex - 1);
   renderLayers();
@@ -165,6 +188,7 @@ document.getElementById('eraser').addEventListener('click', () => tool = 'eraser
 document.getElementById('color-picker').addEventListener('click', () => tool = 'colorpicker');
 document.getElementById('bucket').addEventListener('click', () => tool = 'bucket');
 document.getElementById('clear').addEventListener('click', () => {
+  pushHistory();
   project.layers[currentLayerIndex].pixels.data.fill(0);
   drawProject(ctx, project, palette);
 });
@@ -211,6 +235,36 @@ importFileInput.addEventListener('change', (e) => {
   reader.readAsText(file);
 });
 
+// Bind Undo/Redo buttons
+document.getElementById('undo').addEventListener('click', () => {
+  if (undoStack.length > 0) {
+    redoStack.push(JSON.stringify(project));
+    project = JSON.parse(undoStack.pop());
+    width = project.canvas.width;
+    height = project.canvas.height;
+    palette = project.palette;
+    renderPalette();
+    renderLayers();
+    drawProject(ctx, project, palette);
+    updateUndoRedoButtons();
+  }
+});
+document.getElementById('redo').addEventListener('click', () => {
+  if (redoStack.length > 0) {
+    undoStack.push(JSON.stringify(project));
+    project = JSON.parse(redoStack.pop());
+    width = project.canvas.width;
+    height = project.canvas.height;
+    palette = project.palette;
+    renderPalette();
+    renderLayers();
+    drawProject(ctx, project, palette);
+    updateUndoRedoButtons();
+  }
+});
+// Initialize Undo/Redo button states
+updateUndoRedoButtons();
+
 
 // Handle canvas clicks
 canvas.addEventListener('click', (e) => {
@@ -221,9 +275,11 @@ canvas.addEventListener('click', (e) => {
   const idx = y * width + x;
   if (tool === 'pen') {
     // Set pixel to selected color (1-based index)
+    pushHistory();
     project.layers[currentLayerIndex].pixels.data[idx] = currentColorIndex + 1;
   } else if (tool === 'eraser') {
     // Clear pixel
+    pushHistory();
     project.layers[currentLayerIndex].pixels.data[idx] = 0;
   } else if (tool === 'colorpicker') {
     // Pick color from topmost visible layer at clicked pixel
@@ -238,6 +294,8 @@ canvas.addEventListener('click', (e) => {
     currentColorIndex = picked;
     renderPalette();
   } else if (tool === 'bucket') {
+    // Flood fill on current layer
+    pushHistory();
     // Flood fill on current layer
     const layer = project.layers[currentLayerIndex];
     if (layer.pixels && layer.pixels.data) {
