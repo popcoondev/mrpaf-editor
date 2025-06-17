@@ -1,6 +1,4 @@
 // MRPAF renderer module: draw project data onto HTML canvas
-// Cache loaded images by URI to avoid reloading
-const imageCache = new Map();
 /**
  * Render the project (image and pixel layers) onto the canvas context.
  */
@@ -25,25 +23,21 @@ export function drawProject(ctx, project, palette = []) {
     ctx.lineTo(width * pixelSize, y * pixelSize);
     ctx.stroke();
   }
-  // Draw layers in order (image first, then pixel layers)
   project.layers.forEach(layer => {
     // Image layer support
     if (layer.type === 'image' && layer.visible && layer.source && layer.source.uri) {
-      const uri = layer.source.uri;
-      let img = imageCache.get(uri);
+      let img = layer.image;
       if (!img) {
         img = new Image();
-        // Register onload before setting src to catch immediate loads
         img.onload = () => {
-          // Re-render once image is loaded
           if (typeof window !== 'undefined' && typeof window.renderCanvas === 'function') {
             window.renderCanvas();
           } else {
             drawProject(ctx, project, palette);
           }
         };
-        img.src = uri;
-        imageCache.set(uri, img);
+        img.src = layer.source.uri;
+        layer.image = img;
       }
       if (img.complete) {
         ctx.globalAlpha = layer.opacity != null ? layer.opacity : 1;
@@ -56,14 +50,14 @@ export function drawProject(ctx, project, palette = []) {
     if (layer.type !== 'pixel' || !layer.visible || !layer.pixels || !layer.pixels.data) return;
     const data = layer.pixels.data;
     ctx.globalAlpha = layer.opacity != null ? layer.opacity : 1;
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const idx = y * width + x;
+    for (let yy = 0; yy < height; yy++) {
+      for (let xx = 0; xx < width; xx++) {
+        const idx = yy * width + xx;
         const val = data[idx];
         if (val > 0) {
           const color = palette[val - 1] || '#000';
           ctx.fillStyle = color;
-          ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+          ctx.fillRect(xx * pixelSize, yy * pixelSize, pixelSize, pixelSize);
         }
       }
     }
