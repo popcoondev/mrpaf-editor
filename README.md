@@ -73,9 +73,14 @@
  - [x] Palette editor (add/remove, rename)
 - [x] Brush size control
 - [x] Configurable canvas resolution
- - [x] Line drawing tool
+  - [x] Line drawing tool
+  - [x] Background image layer support
 
  **Remaining features to implement:**
-- None
+ - Onion Skin support (branch: feature/onion-skin-support)
+ - Symmetry tool
+ - Brush presets
+ - Animation timeline preview
+ - PNG/GIF export
  
  *Generated and maintained by the AI agent during development to ensure context continuity.*
