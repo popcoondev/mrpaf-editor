@@ -215,6 +215,50 @@ function renderLayers() {
     li.appendChild(downBtn);
     // Append opacity slider after reorder
     li.appendChild(opacityInput);
+    // Resolution controls: pixel array size and scale
+    (function() {
+      const res = layer.resolution || { pixelArraySize: { width, height }, scale: 1 };
+      // Width input
+      const wInput = document.createElement('input');
+      wInput.type = 'number';
+      wInput.min = 1;
+      wInput.value = res.pixelArraySize.width;
+      wInput.style.width = '50px';
+      wInput.title = 'Layer pixel width';
+      wInput.addEventListener('change', () => {
+        pushHistory();
+        layer.resolution.pixelArraySize.width = parseInt(wInput.value, 10) || res.pixelArraySize.width;
+        renderCanvas();
+      });
+      li.appendChild(wInput);
+      // Height input
+      const hInput = document.createElement('input');
+      hInput.type = 'number';
+      hInput.min = 1;
+      hInput.value = res.pixelArraySize.height;
+      hInput.style.width = '50px';
+      hInput.title = 'Layer pixel height';
+      hInput.addEventListener('change', () => {
+        pushHistory();
+        layer.resolution.pixelArraySize.height = parseInt(hInput.value, 10) || res.pixelArraySize.height;
+        renderCanvas();
+      });
+      li.appendChild(hInput);
+      // Scale input
+      const sInput = document.createElement('input');
+      sInput.type = 'number';
+      sInput.step = 0.1;
+      sInput.min = 0.1;
+      sInput.value = res.scale;
+      sInput.style.width = '50px';
+      sInput.title = 'Layer scale factor';
+      sInput.addEventListener('change', () => {
+        pushHistory();
+        layer.resolution.scale = parseFloat(sInput.value) || res.scale;
+        renderCanvas();
+      });
+      li.appendChild(sInput);
+    })();
     layerList.appendChild(li);
   });
 }
@@ -230,6 +274,12 @@ document.getElementById('add-layer').addEventListener('click', () => {
     visible: true,
     locked: false,
     opacity: 1,
+    // Multi-resolution support
+    resolution: {
+      pixelArraySize: { width, height },
+      scale: 1.0
+    },
+    placement: { x: 0, y: 0 },
     pixels: {
       format: 'Array',
       width,

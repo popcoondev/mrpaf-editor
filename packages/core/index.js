@@ -14,6 +14,13 @@ export function createEmptyProject(width = 16, height = 16) {
         visible: true,
         locked: false,
         opacity: 1,
+        // Multi-resolution support: pixel array size and scale
+        resolution: {
+          pixelArraySize: { width, height },
+          scale: 1.0
+        },
+        // Placement offset (in base pixels)
+        placement: { x: 0, y: 0 },
         pixels: {
           format: "Array",
           width,
