@@ -198,25 +198,6 @@ document.getElementById('add-layer').addEventListener('click', () => {
   project.layers.push(newLayer);
   currentLayerIndex = project.layers.length - 1;
   renderLayers();
-// Palette editing controls
-document.getElementById('add-color').addEventListener('click', () => {
-  const newColor = '#000000';
-  pushHistory();
-  palette.push(newColor);
-  project.palette = palette;
-  renderPalette();
-});
-document.getElementById('remove-color').addEventListener('click', () => {
-  if (palette.length <= 1) {
-    alert('At least one color must remain.');
-    return;
-  }
-  pushHistory();
-  palette.pop();
-  project.palette = palette;
-  if (currentColorIndex >= palette.length) currentColorIndex = palette.length - 1;
-  renderPalette();
-});
   renderCanvas();
 });
 // Remove Layer button
@@ -282,7 +263,26 @@ importFileInput.addEventListener('change', (e) => {
         palette = project.palette;
         // After import, reset to first layer
         currentLayerIndex = 0;
-        renderPalette();
+renderPalette();
+// Palette editing controls
+document.getElementById('add-color').addEventListener('click', () => {
+  const newColor = '#000000';
+  pushHistory();
+  palette.push(newColor);
+  project.palette = palette;
+  renderPalette();
+});
+document.getElementById('remove-color').addEventListener('click', () => {
+  if (palette.length <= 1) {
+    alert('At least one color must remain.');
+    return;
+  }
+  pushHistory();
+  palette.pop();
+  project.palette = palette;
+  if (currentColorIndex >= palette.length) currentColorIndex = palette.length - 1;
+  renderPalette();
+});
         renderLayers();
         renderCanvas();
     } catch (err) {
