@@ -369,8 +369,11 @@ function drawLine(x0, y0, x1, y1) {
   const layer = project.layers[currentLayerIndex];
   if (!layer.pixels || !layer.pixels.data) return;
   const data = layer.pixels.data;
-  const w = width;
-  const h = height;
+  // Determine layer dimensions from resolution
+  const res = layer.resolution || { pixelArraySize: { width, height }, scale: 1 };
+  const arr = res.pixelArraySize;
+  const w = arr.width;
+  const h = arr.height;
   const value = currentColorIndex + 1;
   let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
   let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
@@ -526,11 +529,21 @@ canvas.addEventListener('mouseup', () => {
 });
 // Handle canvas clicks
 canvas.addEventListener('click', (e) => {
+  // Compute click position relative to base canvas grid (ignoring pan/zoom)
   const rect = canvas.getBoundingClientRect();
   const pixelSize = Math.floor(Math.min(canvas.width / width, canvas.height / height));
-  const x = Math.floor((e.clientX - rect.left) / pixelSize);
-  const y = Math.floor((e.clientY - rect.top) / pixelSize);
-  const idx = y * width + x;
+  const baseX = Math.floor((e.clientX - rect.left) / pixelSize);
+  const baseY = Math.floor((e.clientY - rect.top) / pixelSize);
+  // Map to current layer pixel coordinates
+  const layer = project.layers[currentLayerIndex];
+  const res = layer.resolution || { pixelArraySize: { width, height }, scale: 1 };
+  const arr = res.pixelArraySize;
+  const scale = res.scale;
+  const offset = layer.placement || { x: 0, y: 0 };
+  const layerX = Math.floor((baseX - offset.x) / scale);
+  const layerY = Math.floor((baseY - offset.y) / scale);
+  const layerW = arr.width;
+  const layerH = arr.height;
   if (tool === 'pen') {
     // Set pixel to selected color (1-based index)
     pushHistory();
@@ -540,10 +553,10 @@ canvas.addEventListener('click', (e) => {
     const data = layer.pixels.data;
     for (let dy = -half; dy <= half; dy++) {
       for (let dx = -half; dx <= half; dx++) {
-        const xi = x + dx;
-        const yi = y + dy;
-        if (xi >= 0 && xi < width && yi >= 0 && yi < height) {
-          data[yi * width + xi] = currentColorIndex + 1;
+        const xi = layerX + dx;
+        const yi = layerY + dy;
+        if (xi >= 0 && xi < layerW && yi >= 0 && yi < layerH) {
+          data[yi * layerW + xi] = currentColorIndex + 1;
         }
       }
     }
@@ -556,10 +569,10 @@ canvas.addEventListener('click', (e) => {
     const data = layer.pixels.data;
     for (let dy = -half; dy <= half; dy++) {
       for (let dx = -half; dx <= half; dx++) {
-        const xi = x + dx;
-        const yi = y + dy;
-        if (xi >= 0 && xi < width && yi >= 0 && yi < height) {
-          data[yi * width + xi] = 0;
+        const xi = layerX + dx;
+        const yi = layerY + dy;
+        if (xi >= 0 && xi < layerW && yi >= 0 && yi < layerH) {
+          data[yi * layerW + xi] = 0;
         }
       }
     }
@@ -567,11 +580,18 @@ canvas.addEventListener('click', (e) => {
     // Pick color from topmost visible layer at clicked pixel
     let picked = 0;
     for (let li = project.layers.length - 1; li >= 0; li--) {
-      const layer = project.layers[li];
-      if (layer.visible && layer.pixels && layer.pixels.data) {
-        const val = layer.pixels.data[idx];
-        if (val > 0) { picked = val - 1; break; }
-      }
+      const lyr = project.layers[li];
+      if (!lyr.visible || !lyr.pixels || !lyr.pixels.data) continue;
+      const r = lyr.resolution || { pixelArraySize: { width, height }, scale: 1 };
+      const a = r.pixelArraySize;
+      const s = r.scale;
+      const off = lyr.placement || { x: 0, y: 0 };
+      const lx = Math.floor((baseX - off.x) / s);
+      const ly = Math.floor((baseY - off.y) / s);
+      if (lx < 0 || lx >= a.width || ly < 0 || ly >= a.height) continue;
+      const vidx = ly * a.width + lx;
+      const val = lyr.pixels.data[vidx];
+      if (val > 0) { picked = val - 1; break; }
     }
     currentColorIndex = picked;
     renderPalette();
@@ -582,12 +602,12 @@ canvas.addEventListener('click', (e) => {
     const layer = project.layers[currentLayerIndex];
     if (layer.pixels && layer.pixels.data) {
       const data = layer.pixels.data;
-      const target = data[idx];
+      const target = data[layerY * layerW + layerX];
       const replacement = currentColorIndex + 1;
       if (target !== replacement) {
-        const w = width;
-        const h = height;
-        const stack = [idx];
+        const w = layerW;
+        const h = layerH;
+        const stack = [layerY * layerW + layerX];
         while (stack.length) {
           const i = stack.pop();
           if (data[i] !== target) continue;
@@ -604,10 +624,10 @@ canvas.addEventListener('click', (e) => {
   } else if (tool === 'line') {
     // Draw line on current layer between two clicks
     if (lineStart == null) {
-      lineStart = { x, y };
+      lineStart = { x: layerX, y: layerY };
     } else {
       pushHistory();
-      drawLine(lineStart.x, lineStart.y, x, y);
+      drawLine(lineStart.x, lineStart.y, layerX, layerY);
       lineStart = null;
     }
   }
