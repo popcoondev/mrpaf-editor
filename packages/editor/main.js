@@ -380,11 +380,35 @@ canvas.addEventListener('click', (e) => {
   if (tool === 'pen') {
     // Set pixel to selected color (1-based index)
     pushHistory();
-    project.layers[currentLayerIndex].pixels.data[idx] = currentColorIndex + 1;
+    const brushSize = parseInt(document.getElementById('brush-size').value) || 1;
+    const half = Math.floor(brushSize / 2);
+    const layer = project.layers[currentLayerIndex];
+    const data = layer.pixels.data;
+    for (let dy = -half; dy <= half; dy++) {
+      for (let dx = -half; dx <= half; dx++) {
+        const xi = x + dx;
+        const yi = y + dy;
+        if (xi >= 0 && xi < width && yi >= 0 && yi < height) {
+          data[yi * width + xi] = currentColorIndex + 1;
+        }
+      }
+    }
   } else if (tool === 'eraser') {
     // Clear pixel
     pushHistory();
-    project.layers[currentLayerIndex].pixels.data[idx] = 0;
+    const brushSize = parseInt(document.getElementById('brush-size').value) || 1;
+    const half = Math.floor(brushSize / 2);
+    const layer = project.layers[currentLayerIndex];
+    const data = layer.pixels.data;
+    for (let dy = -half; dy <= half; dy++) {
+      for (let dx = -half; dx <= half; dx++) {
+        const xi = x + dx;
+        const yi = y + dy;
+        if (xi >= 0 && xi < width && yi >= 0 && yi < height) {
+          data[yi * width + xi] = 0;
+        }
+      }
+    }
   } else if (tool === 'colorpicker') {
     // Pick color from topmost visible layer at clicked pixel
     let picked = 0;
