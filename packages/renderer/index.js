@@ -6,20 +6,7 @@ export function drawProject(ctx, project, palette = []) {
   const pixelSize = Math.floor(Math.min(ctx.canvas.width / width, ctx.canvas.height / height));
   // Clear canvas
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  // Draw grid
-  ctx.strokeStyle = '#ccc';
-  for (let x = 0; x <= width; x++) {
-    ctx.beginPath();
-    ctx.moveTo(x * pixelSize, 0);
-    ctx.lineTo(x * pixelSize, height * pixelSize);
-    ctx.stroke();
-  }
-  for (let y = 0; y <= height; y++) {
-    ctx.beginPath();
-    ctx.moveTo(0, y * pixelSize);
-    ctx.lineTo(width * pixelSize, y * pixelSize);
-    ctx.stroke();
-  }
+  // Background grid removed; per-layer grid overlay is handled in the editor
   // Draw pixel layers in order, with multi-resolution support
   project.layers.forEach(layer => {
     if (layer.type !== 'pixel' || !layer.visible || !layer.pixels || !layer.pixels.data) return;
