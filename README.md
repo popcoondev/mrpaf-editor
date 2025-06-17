@@ -44,14 +44,14 @@
 6. Multi-layer support with Add/Remove layer controls, layer renaming, visibility toggling, opacity adjustments, and layer reordering.
 7. Color picker tool to pick existing colors from canvas.
 8. Bucket fill tool to flood fill contiguous regions.
+9. Basic file IO: Save/Load projects in local storage.
 
  To run the MVP:
  - Serve the repository root over a simple HTTP server (e.g., `python3 -m http.server`).
  - Open `packages/editor/index.html` in your browser.
 
  Future MVP iterations will add additional functionality:
-- - Basic file IO (open/save projects on disk)
-- - Undo/redo support
+- - Zoom and pan
 - - Zoom and pan
 
  ---
