@@ -31,6 +31,29 @@ let currentLayerIndex = 0;
 // Initialize canvas
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+// Resolution controls
+const widthInput = document.getElementById('canvas-width');
+const heightInput = document.getElementById('canvas-height');
+document.getElementById('set-resolution').addEventListener('click', () => {
+  const newWidth = parseInt(widthInput.value, 10);
+  const newHeight = parseInt(heightInput.value, 10);
+  if (!newWidth || !newHeight || newWidth < 1 || newHeight < 1) {
+    alert('Invalid dimensions');
+    return;
+  }
+  width = newWidth;
+  height = newHeight;
+  project = createEmptyProject(width, height);
+  undoStack = [];
+  redoStack = [];
+  currentColorIndex = 0;
+  currentLayerIndex = 0;
+  palette = project.palette;
+  renderPalette();
+  renderLayers();
+  renderCanvas();
+  updateUndoRedoButtons();
+});
 // Zoom and pan state
 let zoom = 1;
 let panX = 0, panY = 0;
