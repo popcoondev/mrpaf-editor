@@ -71,6 +71,8 @@ function renderCanvas() {
   ctx.scale(zoom, zoom);
   drawProject(ctx, project, palette);
 }
+// Expose renderCanvas for external callbacks (e.g., image load events)
+window.renderCanvas = renderCanvas;
 // Render color palette UI
 const paletteContainer = document.getElementById('palette');
 // Hidden color input for palette editing

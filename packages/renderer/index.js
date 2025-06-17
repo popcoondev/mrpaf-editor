@@ -36,7 +36,11 @@ export function drawProject(ctx, project, palette = []) {
         // Register onload before setting src to catch immediate loads
         img.onload = () => {
           // Re-render once image is loaded
-          drawProject(ctx, project, palette);
+          if (typeof window !== 'undefined' && typeof window.renderCanvas === 'function') {
+            window.renderCanvas();
+          } else {
+            drawProject(ctx, project, palette);
+          }
         };
         img.src = uri;
         imageCache.set(uri, img);
