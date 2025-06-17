@@ -31,6 +31,29 @@ let currentLayerIndex = 0;
 // Initialize canvas
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+// Resolution controls
+const widthInput = document.getElementById('canvas-width');
+const heightInput = document.getElementById('canvas-height');
+document.getElementById('set-resolution').addEventListener('click', () => {
+  const newWidth = parseInt(widthInput.value, 10);
+  const newHeight = parseInt(heightInput.value, 10);
+  if (!newWidth || !newHeight || newWidth < 1 || newHeight < 1) {
+    alert('Invalid dimensions');
+    return;
+  }
+  width = newWidth;
+  height = newHeight;
+  project = createEmptyProject(width, height);
+  undoStack = [];
+  redoStack = [];
+  currentColorIndex = 0;
+  currentLayerIndex = 0;
+  palette = project.palette;
+  renderPalette();
+  renderLayers();
+  renderCanvas();
+  updateUndoRedoButtons();
+});
 // Zoom and pan state
 let zoom = 1;
 let panX = 0, panY = 0;
@@ -235,8 +258,32 @@ document.getElementById('remove-layer').addEventListener('click', () => {
 
 // Current tool state
 let tool = 'pen';
+// For line tool: store starting point
+let lineStart = null;
+// Draw a straight line on the current layer using Bresenham's algorithm
+function drawLine(x0, y0, x1, y1) {
+  const layer = project.layers[currentLayerIndex];
+  if (!layer.pixels || !layer.pixels.data) return;
+  const data = layer.pixels.data;
+  const w = width;
+  const h = height;
+  const value = currentColorIndex + 1;
+  let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+  let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  while (true) {
+    if (x0 >= 0 && x0 < w && y0 >= 0 && y0 < h) {
+      data[y0 * w + x0] = value;
+    }
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x0 += sx; }
+    if (e2 <= dx) { err += dx; y0 += sy; }
+  }
+}
 document.getElementById('pen').addEventListener('click', () => tool = 'pen');
 document.getElementById('eraser').addEventListener('click', () => tool = 'eraser');
+document.getElementById('line').addEventListener('click', () => { tool = 'line'; lineStart = null; });
 document.getElementById('color-picker').addEventListener('click', () => tool = 'colorpicker');
 document.getElementById('bucket').addEventListener('click', () => tool = 'bucket');
 document.getElementById('clear').addEventListener('click', () => {
@@ -446,6 +493,15 @@ canvas.addEventListener('click', (e) => {
           if (y0 < h - 1) stack.push(i + w);
         }
       }
+    }
+  } else if (tool === 'line') {
+    // Draw line on current layer between two clicks
+    if (lineStart == null) {
+      lineStart = { x, y };
+    } else {
+      pushHistory();
+      drawLine(lineStart.x, lineStart.y, x, y);
+      lineStart = null;
     }
   }
   renderCanvas();
