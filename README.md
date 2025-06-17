@@ -45,13 +45,14 @@
 7. Color picker tool to pick existing colors from canvas.
 8. Bucket fill tool to flood fill contiguous regions.
 9. Basic file IO: Save/Load projects in local storage.
+10. Zoom and pan support: canvas zoom controls and pan tool.
 
  To run the MVP:
  - Serve the repository root over a simple HTTP server (e.g., `python3 -m http.server`).
  - Open `packages/editor/index.html` in your browser.
 
  Future MVP iterations will add additional functionality:
-- - Zoom and pan
+- 
 - - Zoom and pan
 
  ---

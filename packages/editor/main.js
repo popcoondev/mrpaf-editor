@@ -31,6 +31,23 @@ let currentLayerIndex = 0;
 // Initialize canvas
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+// Zoom and pan state
+let zoom = 1;
+let panX = 0, panY = 0;
+let isPanning = false;
+let panStart = { x: 0, y: 0 };
+let panOffsetStart = { x: 0, y: 0 };
+
+// Render canvas with zoom and pan
+function renderCanvas() {
+  // Reset transform and clear canvas
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Apply pan and zoom
+  ctx.translate(panX, panY);
+  ctx.scale(zoom, zoom);
+  drawProject(ctx, project, palette);
+}
 // Render color palette UI
 const paletteContainer = document.getElementById('palette');
 function renderPalette() {
@@ -64,7 +81,7 @@ function renderLayers() {
     visCheckbox.addEventListener('change', () => {
       pushHistory();
       layer.visible = visCheckbox.checked;
-      drawProject(ctx, project, palette);
+      renderCanvas();
     });
     li.appendChild(visCheckbox);
     // Layer name / select
@@ -88,7 +105,7 @@ function renderLayers() {
     opacityInput.addEventListener('input', () => {
       pushHistory();
       layer.opacity = parseFloat(opacityInput.value);
-      drawProject(ctx, project, palette);
+      renderCanvas();
     });
     // Rename control (placed before opacity for visibility)
     const renameBtn = document.createElement('button');
@@ -118,7 +135,7 @@ function renderLayers() {
         [layers[idx - 1], layers[idx]] = [layers[idx], layers[idx - 1]];
         currentLayerIndex = idx - 1;
         renderLayers();
-        drawProject(ctx, project, palette);
+        renderCanvas();
       }
     });
     li.appendChild(upBtn);
@@ -134,7 +151,7 @@ function renderLayers() {
         [layers[idx], layers[idx + 1]] = [layers[idx + 1], layers[idx]];
         currentLayerIndex = idx + 1;
         renderLayers();
-        drawProject(ctx, project, palette);
+        renderCanvas();
       }
     });
     li.appendChild(downBtn);
@@ -165,7 +182,7 @@ document.getElementById('add-layer').addEventListener('click', () => {
   project.layers.push(newLayer);
   currentLayerIndex = project.layers.length - 1;
   renderLayers();
-  drawProject(ctx, project, palette);
+  renderCanvas();
 });
 // Remove Layer button
 document.getElementById('remove-layer').addEventListener('click', () => {
@@ -178,7 +195,7 @@ document.getElementById('remove-layer').addEventListener('click', () => {
   project.layers.splice(currentLayerIndex, 1);
   currentLayerIndex = Math.max(0, currentLayerIndex - 1);
   renderLayers();
-  drawProject(ctx, project, palette);
+  renderCanvas();
 });
 
 // Current tool state
@@ -190,8 +207,13 @@ document.getElementById('bucket').addEventListener('click', () => tool = 'bucket
 document.getElementById('clear').addEventListener('click', () => {
   pushHistory();
   project.layers[currentLayerIndex].pixels.data.fill(0);
-  drawProject(ctx, project, palette);
+  renderCanvas();
 });
+// Zoom & pan tool bindings
+document.getElementById('pan').addEventListener('click', () => tool = 'pan');
+document.getElementById('zoom-in').addEventListener('click', () => { zoom *= 1.2; renderCanvas(); });
+document.getElementById('zoom-out').addEventListener('click', () => { zoom /= 1.2; renderCanvas(); });
+document.getElementById('reset-zoom').addEventListener('click', () => { zoom = 1; panX = 0; panY = 0; renderCanvas(); });
 document.getElementById('export').addEventListener('click', () => {
   const json = JSON.stringify(project, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
@@ -227,7 +249,7 @@ importFileInput.addEventListener('change', (e) => {
         currentLayerIndex = 0;
         renderPalette();
         renderLayers();
-        drawProject(ctx, project, palette);
+        renderCanvas();
     } catch (err) {
       alert('Error parsing JSON: ' + err);
     }
@@ -245,7 +267,7 @@ document.getElementById('undo').addEventListener('click', () => {
     palette = project.palette;
     renderPalette();
     renderLayers();
-    drawProject(ctx, project, palette);
+    renderCanvas();
     updateUndoRedoButtons();
   }
 });
@@ -258,7 +280,7 @@ document.getElementById('redo').addEventListener('click', () => {
     palette = project.palette;
     renderPalette();
     renderLayers();
-    drawProject(ctx, project, palette);
+    renderCanvas();
     updateUndoRedoButtons();
   }
 });
@@ -287,14 +309,32 @@ document.getElementById('load-local').addEventListener('click', () => {
     height = project.canvas.height;
     palette = project.palette;
     renderPalette();
-    renderLayers();
-    drawProject(ctx, project, palette);
+        renderLayers();
+        renderCanvas();
   } catch (err) {
     alert('Error loading project: ' + err);
   }
 });
 
 
+// Pan event handlers
+canvas.addEventListener('mousedown', (e) => {
+  if (tool === 'pan' && e.button === 0) {
+    isPanning = true;
+    panStart = { x: e.clientX, y: e.clientY };
+    panOffsetStart = { x: panX, y: panY };
+  }
+});
+canvas.addEventListener('mousemove', (e) => {
+  if (isPanning) {
+    panX = panOffsetStart.x + (e.clientX - panStart.x);
+    panY = panOffsetStart.y + (e.clientY - panStart.y);
+    renderCanvas();
+  }
+});
+canvas.addEventListener('mouseup', () => {
+  if (isPanning) isPanning = false;
+});
 // Handle canvas clicks
 canvas.addEventListener('click', (e) => {
   const rect = canvas.getBoundingClientRect();
@@ -349,8 +389,8 @@ canvas.addEventListener('click', (e) => {
       }
     }
   }
-  drawProject(ctx, project, palette);
+  renderCanvas();
 });
 
 // Initial render
-drawProject(ctx, project, palette);
+renderCanvas();
