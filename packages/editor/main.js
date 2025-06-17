@@ -84,6 +84,25 @@ function renderPalette() {
   });
 }
 renderPalette();
+// Palette editing controls
+document.getElementById('add-color').addEventListener('click', () => {
+  const newColor = '#000000';
+  pushHistory();
+  palette.push(newColor);
+  project.palette = palette;
+  renderPalette();
+});
+document.getElementById('remove-color').addEventListener('click', () => {
+  if (palette.length <= 1) {
+    alert('At least one color must remain.');
+    return;
+  }
+  pushHistory();
+  palette.pop();
+  project.palette = palette;
+  if (currentColorIndex >= palette.length) currentColorIndex = palette.length - 1;
+  renderPalette();
+});
 // Layer controls UI
 const layerList = document.getElementById('layer-list');
 function renderLayers() {
@@ -264,25 +283,6 @@ importFileInput.addEventListener('change', (e) => {
         // After import, reset to first layer
         currentLayerIndex = 0;
 renderPalette();
-// Palette editing controls
-document.getElementById('add-color').addEventListener('click', () => {
-  const newColor = '#000000';
-  pushHistory();
-  palette.push(newColor);
-  project.palette = palette;
-  renderPalette();
-});
-document.getElementById('remove-color').addEventListener('click', () => {
-  if (palette.length <= 1) {
-    alert('At least one color must remain.');
-    return;
-  }
-  pushHistory();
-  palette.pop();
-  project.palette = palette;
-  if (currentColorIndex >= palette.length) currentColorIndex = palette.length - 1;
-  renderPalette();
-});
         renderLayers();
         renderCanvas();
     } catch (err) {
