@@ -46,6 +46,8 @@
 8. Bucket fill tool to flood fill contiguous regions.
 9. Basic file IO: Save/Load projects in local storage.
 10. Zoom and pan support: canvas zoom controls and pan tool.
+11. Palette editor: add/remove and rename palette colors via UI.
+10. Zoom and pan support: canvas zoom controls and pan tool.
 
  To run the MVP:
  - Serve the repository root over a simple HTTP server (e.g., `python3 -m http.server`).
@@ -54,7 +56,7 @@
  Future MVP iterations will add additional functionality:
 - 
 - - Zoom and pan
-
+ 
  ---
 
  *Generated and maintained by the AI agent during development to ensure context continuity.*

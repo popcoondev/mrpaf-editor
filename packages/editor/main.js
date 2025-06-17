@@ -50,6 +50,11 @@ function renderCanvas() {
 }
 // Render color palette UI
 const paletteContainer = document.getElementById('palette');
+// Hidden color input for palette editing
+const paletteColorInput = document.createElement('input');
+paletteColorInput.type = 'color';
+paletteColorInput.style.display = 'none';
+document.body.appendChild(paletteColorInput);
 function renderPalette() {
   paletteContainer.innerHTML = '';
   palette.forEach((color, idx) => {
@@ -63,6 +68,17 @@ function renderPalette() {
     swatch.addEventListener('click', () => {
       currentColorIndex = idx;
       renderPalette();
+    });
+    // Double-click to edit palette color
+    swatch.addEventListener('dblclick', () => {
+      paletteColorInput.value = color;
+      paletteColorInput.onchange = () => {
+        pushHistory();
+        palette[idx] = paletteColorInput.value;
+        project.palette = palette;
+        renderPalette();
+      };
+      paletteColorInput.click();
     });
     paletteContainer.appendChild(swatch);
   });
@@ -182,6 +198,25 @@ document.getElementById('add-layer').addEventListener('click', () => {
   project.layers.push(newLayer);
   currentLayerIndex = project.layers.length - 1;
   renderLayers();
+// Palette editing controls
+document.getElementById('add-color').addEventListener('click', () => {
+  const newColor = '#000000';
+  pushHistory();
+  palette.push(newColor);
+  project.palette = palette;
+  renderPalette();
+});
+document.getElementById('remove-color').addEventListener('click', () => {
+  if (palette.length <= 1) {
+    alert('At least one color must remain.');
+    return;
+  }
+  pushHistory();
+  palette.pop();
+  project.palette = palette;
+  if (currentColorIndex >= palette.length) currentColorIndex = palette.length - 1;
+  renderPalette();
+});
   renderCanvas();
 });
 // Remove Layer button
