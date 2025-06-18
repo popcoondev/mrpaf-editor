@@ -299,7 +299,7 @@ function renderLayers() {
         // Rebuild pixel data array to match new dimensions
         const oldData = layer.pixels.data;
         const newH = oldH;
-        const newData = new Array(newW * newH).fill(0);
+        const newData = new Array(newW * newH).fill(null);
         for (let y = 0; y < newH; y++) {
           for (let x = 0; x < Math.min(oldW, newW); x++) {
             newData[y * newW + x] = oldData[y * oldW + x] || 0;
@@ -329,7 +329,7 @@ function renderLayers() {
         // Rebuild pixel data array to match new dimensions
         const oldData = layer.pixels.data;
         const newW = oldW;
-        const newData = new Array(newW * newH).fill(0);
+        const newData = new Array(newW * newH).fill(null);
         for (let y = 0; y < Math.min(oldH, newH); y++) {
           for (let x = 0; x < newW; x++) {
             newData[y * newW + x] = oldData[y * oldW + x] || 0;
@@ -382,7 +382,8 @@ document.getElementById('add-layer').addEventListener('click', () => {
       format: 'Array',
       width,
       height,
-      data: new Array(width * height).fill(0)
+      // null represents transparent/undrawn pixel
+      data: new Array(width * height).fill(null)
     }
   };
   project.layers.push(newLayer);
@@ -441,7 +442,8 @@ document.getElementById('color-picker').addEventListener('click', () => tool = '
 document.getElementById('bucket').addEventListener('click', () => tool = 'bucket');
 document.getElementById('clear').addEventListener('click', () => {
   pushHistory();
-  project.layers[currentLayerIndex].pixels.data.fill(0);
+  // Clear pixel data to transparent (null)
+  project.layers[currentLayerIndex].pixels.data.fill(null);
   renderCanvas();
 });
 // Zoom & pan tool bindings

@@ -25,7 +25,8 @@ export function createEmptyProject(width = 16, height = 16) {
           format: "Array",
           width,
           height,
-          data: new Array(width * height).fill(0)
+          // null represents transparent/undrawn pixel
+          data: new Array(width * height).fill(null)
         }
       }
     ],
