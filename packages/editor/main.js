@@ -1,5 +1,12 @@
 import { createEmptyProject } from '../core/index.js';
 import { drawProject } from '../renderer/index.js';
+// Background image state and input
+const bgFileInput = document.createElement('input');
+bgFileInput.type = 'file';
+bgFileInput.accept = 'image/*';
+bgFileInput.style.display = 'none';
+document.body.appendChild(bgFileInput);
+let backgroundImg = null;
 
 // Configuration
 let width = 16;
@@ -78,6 +85,13 @@ function renderCanvas() {
   // Apply pan and zoom
   ctx.translate(panX, panY);
   ctx.scale(zoom, zoom);
+  // Draw background image under pixel layers
+  if (backgroundImg) {
+    const baseW = project.canvas.width;
+    const baseH = project.canvas.height;
+    const pixelSize = Math.floor(Math.min(canvas.width / baseW, canvas.height / baseH));
+    ctx.drawImage(backgroundImg, 0, 0, baseW * pixelSize, baseH * pixelSize);
+  }
   drawProject(ctx, project, palette);
   // Draw per-layer grid overlays
   // Compute base pixel size (before zoom transform)
@@ -445,6 +459,28 @@ renderPalette();
     }
   };
   reader.readAsText(file);
+});
+// Background image import
+document.getElementById('add-background').addEventListener('click', () => {
+  bgFileInput.value = '';
+  bgFileInput.click();
+});
+bgFileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = reader.result;
+    const img = new Image();
+    img.onload = () => {
+      pushHistory();
+      backgroundImg = img;
+      project.backgroundImage = dataUrl;
+      renderCanvas();
+    };
+    img.src = dataUrl;
+  };
+  reader.readAsDataURL(file);
 });
 
 // Bind Undo/Redo buttons
