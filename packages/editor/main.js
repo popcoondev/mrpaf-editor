@@ -291,7 +291,24 @@ function renderLayers() {
       wInput.title = 'Layer pixel width';
       wInput.addEventListener('change', () => {
         pushHistory();
-        layer.resolution.pixelArraySize.width = parseInt(wInput.value, 10) || res.pixelArraySize.width;
+        // Resize layer pixel array when width changes
+        const newW = parseInt(wInput.value, 10) || res.pixelArraySize.width;
+        const oldW = res.pixelArraySize.width;
+        const oldH = res.pixelArraySize.height;
+        res.pixelArraySize.width = newW;
+        // Rebuild pixel data array to match new dimensions
+        const oldData = layer.pixels.data;
+        const newH = oldH;
+        const newData = new Array(newW * newH).fill(0);
+        for (let y = 0; y < newH; y++) {
+          for (let x = 0; x < Math.min(oldW, newW); x++) {
+            newData[y * newW + x] = oldData[y * oldW + x] || 0;
+          }
+        }
+        layer.pixels.data = newData;
+        // Update pixel metadata
+        layer.pixels.width = newW;
+        layer.pixels.height = newH;
         renderCanvas();
       });
       li.appendChild(wInput);
@@ -304,7 +321,24 @@ function renderLayers() {
       hInput.title = 'Layer pixel height';
       hInput.addEventListener('change', () => {
         pushHistory();
-        layer.resolution.pixelArraySize.height = parseInt(hInput.value, 10) || res.pixelArraySize.height;
+        // Resize layer pixel array when height changes
+        const newH = parseInt(hInput.value, 10) || res.pixelArraySize.height;
+        const oldW = res.pixelArraySize.width;
+        const oldH = res.pixelArraySize.height;
+        res.pixelArraySize.height = newH;
+        // Rebuild pixel data array to match new dimensions
+        const oldData = layer.pixels.data;
+        const newW = oldW;
+        const newData = new Array(newW * newH).fill(0);
+        for (let y = 0; y < Math.min(oldH, newH); y++) {
+          for (let x = 0; x < newW; x++) {
+            newData[y * newW + x] = oldData[y * oldW + x] || 0;
+          }
+        }
+        layer.pixels.data = newData;
+        // Update pixel metadata
+        layer.pixels.width = newW;
+        layer.pixels.height = newH;
         renderCanvas();
       });
       li.appendChild(hInput);
