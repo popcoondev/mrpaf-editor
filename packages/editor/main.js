@@ -82,15 +82,13 @@ function renderCanvas() {
   // Reset transform and clear canvas
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // Apply pan and zoom
+  // Draw background image full canvas
+  if (backgroundImg) {
+    ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+  }
+  // Apply pan and zoom for pixel layers
   ctx.translate(panX, panY);
   ctx.scale(zoom, zoom);
-  // Draw background image under pixel layers (aligned to pixel grid)
-  if (backgroundImg) {
-    // Compute pixel size in world units
-    const pixelSize = Math.floor(Math.min(canvas.width / width, canvas.height / height));
-    ctx.drawImage(backgroundImg, 0, 0, width * pixelSize, height * pixelSize);
-  }
   // Draw pixel layers
   drawProject(ctx, project, palette);
   // Draw per-layer grid overlays
