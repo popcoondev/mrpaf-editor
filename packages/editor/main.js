@@ -529,21 +529,26 @@ canvas.addEventListener('mouseup', () => {
 });
 // Handle canvas clicks
 canvas.addEventListener('click', (e) => {
-  // Compute click position relative to base canvas grid (ignoring pan/zoom)
+  // Convert screen click to layer pixel coordinates (pan/zoom + resolution scale)
   const rect = canvas.getBoundingClientRect();
+  const canvasX = e.clientX - rect.left;
+  const canvasY = e.clientY - rect.top;
+  const worldX = (canvasX - panX) / zoom;
+  const worldY = (canvasY - panY) / zoom;
   const pixelSize = Math.floor(Math.min(canvas.width / width, canvas.height / height));
-  const baseX = Math.floor((e.clientX - rect.left) / pixelSize);
-  const baseY = Math.floor((e.clientY - rect.top) / pixelSize);
-  // Map to current layer pixel coordinates
+  const gridX = worldX / pixelSize;
+  const gridY = worldY / pixelSize;
   const layer = project.layers[currentLayerIndex];
   const res = layer.resolution || { pixelArraySize: { width, height }, scale: 1 };
   const arr = res.pixelArraySize;
   const scale = res.scale;
   const offset = layer.placement || { x: 0, y: 0 };
-  const layerX = Math.floor((baseX - offset.x) / scale);
-  const layerY = Math.floor((baseY - offset.y) / scale);
+  const layerX = Math.floor((gridX - offset.x) / scale);
+  const layerY = Math.floor((gridY - offset.y) / scale);
   const layerW = arr.width;
   const layerH = arr.height;
+  // If click is outside layer bounds, ignore
+  if (layerX < 0 || layerY < 0 || layerX >= layerW || layerY >= layerH) return;
   if (tool === 'pen') {
     // Set pixel to selected color (1-based index)
     pushHistory();
@@ -586,8 +591,8 @@ canvas.addEventListener('click', (e) => {
       const a = r.pixelArraySize;
       const s = r.scale;
       const off = lyr.placement || { x: 0, y: 0 };
-      const lx = Math.floor((baseX - off.x) / s);
-      const ly = Math.floor((baseY - off.y) / s);
+      const lx = Math.floor((gridX - off.x) / s);
+      const ly = Math.floor((gridY - off.y) / s);
       if (lx < 0 || lx >= a.width || ly < 0 || ly >= a.height) continue;
       const vidx = ly * a.width + lx;
       const val = lyr.pixels.data[vidx];
