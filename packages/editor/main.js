@@ -310,74 +310,77 @@ paletteColorInput.type = 'color';
 paletteColorInput.style.display = 'none';
 document.body.appendChild(paletteColorInput);
 function renderPalette() {
+  // Clear container and render palette entries as draggable items
   paletteContainer.innerHTML = '';
   palette.forEach((entry, idx) => {
+    const entryDiv = document.createElement('div');
+    entryDiv.draggable = true;
+    entryDiv.style.display = 'inline-flex';
+    entryDiv.style.alignItems = 'center';
+    entryDiv.style.margin = '2px';
+    entryDiv.style.border = idx === currentColorIndex ? '2px solid #000' : '1px solid #888';
+    entryDiv.dataset.index = idx;
+    // Drag & Drop handlers
+    entryDiv.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', idx.toString());
+    });
+    entryDiv.addEventListener('dragover', e => {
+      e.preventDefault();
+      entryDiv.style.border = '2px dashed #555';
+    });
+    entryDiv.addEventListener('dragleave', () => {
+      entryDiv.style.border = idx === currentColorIndex ? '2px solid #000' : '1px solid #888';
+    });
+    entryDiv.addEventListener('drop', e => {
+      e.preventDefault();
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      const toIdx = idx;
+      if (fromIdx !== toIdx) {
+        pushHistory();
+        const moved = palette.splice(fromIdx, 1)[0];
+        palette.splice(toIdx, 0, moved);
+        project.palette = palette;
+        currentColorIndex = toIdx;
+        renderPalette();
+      }
+    });
     // Swatch button
     const swatch = document.createElement('button');
     swatch.style.backgroundColor = entry.hex;
     swatch.style.width = '24px';
     swatch.style.height = '24px';
-    swatch.style.margin = '2px';
-    swatch.style.border = idx === currentColorIndex ? '2px solid #000' : '1px solid #888';
+    swatch.style.margin = '0 4px 0 0';
     swatch.title = entry.name || `Color ${idx + 1}`;
-    // Select color
-    swatch.addEventListener('click', () => {
-      currentColorIndex = idx;
-      renderPalette();
-    });
-    // Double-click to change hex color (unless locked)
+    swatch.addEventListener('click', () => { currentColorIndex = idx; renderPalette(); });
     swatch.addEventListener('dblclick', () => {
       if (entry.locked) return;
       paletteColorInput.value = entry.hex;
-      paletteColorInput.onchange = () => {
-        pushHistory();
-        entry.hex = paletteColorInput.value;
-        project.palette = palette;
-        renderPalette();
-      };
+      paletteColorInput.onchange = () => { pushHistory(); entry.hex = paletteColorInput.value; project.palette = palette; renderPalette(); };
       paletteColorInput.click();
     });
-    paletteContainer.appendChild(swatch);
-    // Name field
+    entryDiv.appendChild(swatch);
+    // Name input
     const nameInput = document.createElement('input');
-    nameInput.type = 'text';
-    nameInput.value = entry.name;
+    nameInput.type = 'text'; nameInput.value = entry.name;
     nameInput.disabled = entry.locked;
-    nameInput.style.width = '60px';
-    nameInput.style.margin = '2px';
-    nameInput.addEventListener('change', () => {
-      pushHistory();
-      entry.name = nameInput.value;
-      project.palette = palette;
-    });
-    paletteContainer.appendChild(nameInput);
-    // Locked checkbox
-    const lockCheckbox = document.createElement('input');
-    lockCheckbox.type = 'checkbox';
-    lockCheckbox.checked = entry.locked;
-    lockCheckbox.title = 'Locked';
-    lockCheckbox.style.margin = '2px';
-    lockCheckbox.addEventListener('change', () => {
-      pushHistory();
-      entry.locked = lockCheckbox.checked;
-      project.palette = palette;
-      renderPalette();
-    });
-    paletteContainer.appendChild(lockCheckbox);
-    // Usage field
+    nameInput.style.width = '60px'; nameInput.style.marginRight = '4px';
+    nameInput.addEventListener('change', () => { pushHistory(); entry.name = nameInput.value; project.palette = palette; });
+    entryDiv.appendChild(nameInput);
+    // Usage input
     const usageInput = document.createElement('input');
-    usageInput.type = 'text';
-    usageInput.value = entry.usage;
+    usageInput.type = 'text'; usageInput.value = entry.usage;
     usageInput.disabled = entry.locked;
     usageInput.placeholder = 'usage';
-    usageInput.style.width = '60px';
-    usageInput.style.margin = '2px';
-    usageInput.addEventListener('change', () => {
-      pushHistory();
-      entry.usage = usageInput.value;
-      project.palette = palette;
-    });
-    paletteContainer.appendChild(usageInput);
+    usageInput.style.width = '60px'; usageInput.style.marginRight = '4px';
+    usageInput.addEventListener('change', () => { pushHistory(); entry.usage = usageInput.value; project.palette = palette; });
+    entryDiv.appendChild(usageInput);
+    // Lock checkbox
+    const lockCheckbox = document.createElement('input');
+    lockCheckbox.type = 'checkbox'; lockCheckbox.checked = entry.locked;
+    lockCheckbox.title = 'Locked'; lockCheckbox.style.marginRight = '4px';
+    lockCheckbox.addEventListener('change', () => { pushHistory(); entry.locked = lockCheckbox.checked; project.palette = palette; renderPalette(); });
+    entryDiv.appendChild(lockCheckbox);
+    paletteContainer.appendChild(entryDiv);
   });
 }
 renderPalette();
