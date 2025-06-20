@@ -1,7 +1,8 @@
 // MRPAF renderer module: draw project data onto HTML canvas
 export function drawProject(ctx, project, palette = []) {
-  const width = project.canvas.width;
-  const height = project.canvas.height;
+  // Base canvas resolution
+  const width = project.canvas.baseWidth != null ? project.canvas.baseWidth : project.canvas.width;
+  const height = project.canvas.baseHeight != null ? project.canvas.baseHeight : project.canvas.height;
   // Determine pixel size to fit canvas
   const pixelSize = Math.floor(Math.min(ctx.canvas.width / width, ctx.canvas.height / height));
   // Preserve any existing globalAlpha (e.g., onion skin)
