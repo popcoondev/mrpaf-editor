@@ -269,7 +269,8 @@ function renderCanvas() {
     ctx.globalAlpha = 1;
   }
   // Draw pixel layers for current frame on top
-  drawProject(ctx, project, palette);
+  // Draw pixel layers using hex-only palette array
+  drawProject(ctx, project, project.palette.map(e => e.hex));
   // Draw per-layer grid overlays
   // Compute base pixel size (before zoom transform)
   const baseW = project.canvas.baseWidth;
@@ -836,7 +837,8 @@ document.getElementById('export-image').addEventListener('click', () => {
     exportCtx.globalAlpha = 1;
   }
   // Draw pixel layers without pan/zoom
-  drawProject(exportCtx, project, palette);
+  // Draw with hex-only palette
+  drawProject(exportCtx, project, project.palette.map(e => e.hex));
   // Download as PNG
   exportCanvas.toBlob(blob => {
     const url = URL.createObjectURL(blob);
@@ -918,7 +920,7 @@ document.getElementById('export-gif').addEventListener('click', () => {
       const origFrame = currentFrameIndex;
       const origZoom = zoom, origPanX = panX, origPanY = panY;
       zoom = 1; panX = 0; panY = 0;
-      // Build frames by capturing the rendered canvas
+        // Build frames by capturing the rendered canvas (with hex-only palette)
       for (let i = 0; i < frameCount; i++) {
         setFrame(i);
         renderCanvas();
