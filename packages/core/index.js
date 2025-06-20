@@ -21,8 +21,39 @@ export function createEmptyProject(width = 16, height = 16) {
       tool: { name: "MRPAF Editor MVP", version: "2.0.1", exporter: "MRPAF Editor MVP" },
       compatibility: { minVersion: "2.0.1", features: [] }
     },
-    coordinateSystem: { xOffset: 0, yOffset: 0 },
-    canvas: { width, height },
+    // Coordinate system configuration
+    coordinateSystem: {
+      origin: "top-left",
+      xAxis: "right",
+      yAxis: "down",
+      unit: "pixel",
+      baseUnit: 1.0,
+      subPixelPrecision: 4,
+      allowFloatingPoint: false
+    },
+    // Canvas settings
+    canvas: {
+      baseWidth: width,
+      baseHeight: height,
+      pixelUnit: 1.0,
+      backgroundColor: "#00000000",
+      pixelAspectRatio: 1.0
+    },
+    // Color space settings
+    colorSpace: {
+      profile: "sRGB",
+      bitDepth: 8,
+      gamma: 2.2,
+      whitePoint: "D65"
+    },
+    // Compression profile
+    compressionProfile: {
+      name: "balanced",
+      settings: {
+        autoSelect: true,
+        quality: 0.95
+      }
+    },
     // Default palette: black, red, green, blue
     palette: ['#000000', '#FF0000', '#00FF00', '#0000FF'],
     layers: [

@@ -64,6 +64,113 @@ updateMetadataPanel();
     project.metadata.modified = new Date().toISOString();
   });
 });
+// --- Canvas & Display Settings Setup ---
+const canvasPixelUnitInput = document.getElementById('canvas-pixel-unit');
+const canvasAspectRatioInput = document.getElementById('canvas-aspect-ratio');
+const canvasBgColorInput = document.getElementById('canvas-bg-color');
+/** Populate canvas settings inputs from project.canvas */
+function updateCanvasSettingsPanel() {
+  const cs = project.canvas;
+  canvasPixelUnitInput.value = cs.pixelUnit;
+  canvasAspectRatioInput.value = cs.pixelAspectRatio;
+  canvasBgColorInput.value = cs.backgroundColor;
+}
+// Initialize canvas settings panel
+updateCanvasSettingsPanel();
+// Update project.canvas on user input
+[canvasPixelUnitInput, canvasAspectRatioInput, canvasBgColorInput].forEach(input => {
+  input.addEventListener('input', () => {
+    pushHistory();
+    project.canvas.pixelUnit = parseFloat(canvasPixelUnitInput.value) || 1.0;
+    project.canvas.pixelAspectRatio = parseFloat(canvasAspectRatioInput.value) || 1.0;
+    project.canvas.backgroundColor = canvasBgColorInput.value;
+    project.metadata.modified = new Date().toISOString();
+    renderCanvas();
+  });
+});
+// --- Coordinate System Settings Setup ---
+const coordOriginInput = document.getElementById('coord-origin');
+const coordXAxisInput = document.getElementById('coord-x-axis');
+const coordYAxisInput = document.getElementById('coord-y-axis');
+const coordUnitInput = document.getElementById('coord-unit');
+const coordBaseUnitInput = document.getElementById('coord-base-unit');
+const coordPrecisionInput = document.getElementById('coord-precision');
+const coordAllowFloatInput = document.getElementById('coord-allow-float');
+/** Populate coordinate system inputs from project.coordinateSystem */
+function updateCoordSettingsPanel() {
+  const cs = project.coordinateSystem;
+  coordOriginInput.value = cs.origin;
+  coordXAxisInput.value = cs.xAxis;
+  coordYAxisInput.value = cs.yAxis;
+  coordUnitInput.value = cs.unit;
+  coordBaseUnitInput.value = cs.baseUnit;
+  coordPrecisionInput.value = cs.subPixelPrecision;
+  coordAllowFloatInput.checked = cs.allowFloatingPoint;
+}
+updateCoordSettingsPanel();
+[coordOriginInput, coordXAxisInput, coordYAxisInput, coordUnitInput,
+ coordBaseUnitInput, coordPrecisionInput, coordAllowFloatInput].forEach(el => {
+  el.addEventListener('input', () => {
+    pushHistory();
+    const cs = project.coordinateSystem;
+    cs.origin = coordOriginInput.value;
+    cs.xAxis = coordXAxisInput.value;
+    cs.yAxis = coordYAxisInput.value;
+    cs.unit = coordUnitInput.value;
+    cs.baseUnit = parseFloat(coordBaseUnitInput.value) || 1.0;
+    cs.subPixelPrecision = parseInt(coordPrecisionInput.value, 10) || 0;
+    cs.allowFloatingPoint = coordAllowFloatInput.checked;
+    project.metadata.modified = new Date().toISOString();
+    renderCanvas();
+  });
+});
+// --- Color Space Settings Setup ---
+const csProfileInput = document.getElementById('cs-profile');
+const csBitdepthInput = document.getElementById('cs-bitdepth');
+const csGammaInput = document.getElementById('cs-gamma');
+const csWhitepointInput = document.getElementById('cs-whitepoint');
+/** Populate color space inputs from project.colorSpace */
+function updateColorSpacePanel() {
+  const cs = project.colorSpace;
+  csProfileInput.value = cs.profile;
+  csBitdepthInput.value = cs.bitDepth;
+  csGammaInput.value = cs.gamma;
+  csWhitepointInput.value = cs.whitePoint;
+}
+updateColorSpacePanel();
+[csProfileInput, csBitdepthInput, csGammaInput, csWhitepointInput].forEach(el => {
+  el.addEventListener('input', () => {
+    pushHistory();
+    const cs = project.colorSpace;
+    cs.profile = csProfileInput.value;
+    cs.bitDepth = parseInt(csBitdepthInput.value, 10) || 8;
+    cs.gamma = parseFloat(csGammaInput.value) || 1.0;
+    cs.whitePoint = csWhitepointInput.value;
+    project.metadata.modified = new Date().toISOString();
+  });
+});
+// --- Compression Profile Settings Setup ---
+const cpNameInput = document.getElementById('cp-name');
+const cpAutoInput = document.getElementById('cp-auto');
+const cpQualityInput = document.getElementById('cp-quality');
+/** Populate compression profile inputs from project.compressionProfile */
+function updateCompressionProfilePanel() {
+  const cp = project.compressionProfile;
+  cpNameInput.value = cp.name;
+  cpAutoInput.checked = cp.settings.autoSelect;
+  cpQualityInput.value = cp.settings.quality;
+}
+updateCompressionProfilePanel();
+[cpNameInput, cpAutoInput, cpQualityInput].forEach(el => {
+  el.addEventListener('input', () => {
+    pushHistory();
+    const cp = project.compressionProfile;
+    cp.name = cpNameInput.value;
+    cp.settings.autoSelect = cpAutoInput.checked;
+    cp.settings.quality = parseFloat(cpQualityInput.value) || cp.settings.quality;
+    project.metadata.modified = new Date().toISOString();
+  });
+});
 // History stacks for undo/redo
 let undoStack = [];
 let redoStack = [];
@@ -111,8 +218,12 @@ document.getElementById('set-resolution').addEventListener('click', () => {
   renderLayers();
   renderCanvas();
   updateUndoRedoButtons();
-  // Reset metadata panel after new project
+  // Reset metadata and settings panels after new project
   if (typeof updateMetadataPanel === 'function') updateMetadataPanel();
+  if (typeof updateCanvasSettingsPanel === 'function') updateCanvasSettingsPanel();
+  if (typeof updateCoordSettingsPanel === 'function') updateCoordSettingsPanel();
+  if (typeof updateColorSpacePanel === 'function') updateColorSpacePanel();
+  if (typeof updateCompressionProfilePanel === 'function') updateCompressionProfilePanel();
 });
 // Zoom and pan state
 let zoom = 1;
@@ -126,6 +237,11 @@ function renderCanvas() {
   // Reset transform and clear canvas
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Fill canvas background color if specified
+  if (project.canvas && project.canvas.backgroundColor) {
+    ctx.fillStyle = project.canvas.backgroundColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
   // Draw background image full canvas with visibility and opacity
   if (backgroundImg && backgroundVisible) {
     ctx.globalAlpha = backgroundOpacity;
@@ -156,8 +272,8 @@ function renderCanvas() {
   drawProject(ctx, project, palette);
   // Draw per-layer grid overlays
   // Compute base pixel size (before zoom transform)
-  const baseW = project.canvas.width;
-  const baseH = project.canvas.height;
+  const baseW = project.canvas.baseWidth;
+  const baseH = project.canvas.baseHeight;
   const pixelSize = Math.floor(Math.min(ctx.canvas.width / baseW, ctx.canvas.height / baseH));
   layerGridToggles.forEach((show, idx) => {
     if (!show) return;
@@ -648,17 +764,21 @@ document.getElementById('export').addEventListener('click', () => {
 });
 // Export current pixel art as PNG image
 document.getElementById('export-image').addEventListener('click', () => {
-  const w = project.canvas.width;
-  const h = project.canvas.height;
+  const w = project.canvas.baseWidth;
+  const h = project.canvas.baseHeight;
   // Create offscreen canvas at base resolution
   const exportCanvas = document.createElement('canvas');
   exportCanvas.width = w;
   exportCanvas.height = h;
   const exportCtx = exportCanvas.getContext('2d');
   exportCtx.imageSmoothingEnabled = false;
-  // Clear
+  // Clear and fill background color
   exportCtx.clearRect(0, 0, w, h);
-  // Draw background if present
+  if (project.canvas.backgroundColor) {
+    exportCtx.fillStyle = project.canvas.backgroundColor;
+    exportCtx.fillRect(0, 0, w, h);
+  }
+  // Draw background image if present
   if (backgroundImg && backgroundVisible) {
     exportCtx.globalAlpha = backgroundOpacity;
     exportCtx.drawImage(backgroundImg, 0, 0, w, h);
@@ -680,8 +800,8 @@ document.getElementById('export-image').addEventListener('click', () => {
 document.getElementById('export-spritesheet').addEventListener('click', () => {
   // Export all frames as a single sprite sheet PNG at UI canvas resolution
   const frameCount = project.frames.length;
-  const wPx = project.canvas.width;
-  const hPx = project.canvas.height;
+  const wPx = project.canvas.baseWidth;
+  const hPx = project.canvas.baseHeight;
   const sheetCanvas = document.createElement('canvas');
   sheetCanvas.width = wPx * frameCount;
   sheetCanvas.height = hPx;
@@ -792,10 +912,15 @@ importFileInput.addEventListener('change', (e) => {
         }
         project = imported;
         syncLayerGridToggles();
-        // Refresh metadata inputs
+        // Refresh metadata and settings panels
         if (typeof updateMetadataPanel === 'function') updateMetadataPanel();
-        width = project.canvas.width;
-        height = project.canvas.height;
+        if (typeof updateCanvasSettingsPanel === 'function') updateCanvasSettingsPanel();
+        if (typeof updateCoordSettingsPanel === 'function') updateCoordSettingsPanel();
+        if (typeof updateColorSpacePanel === 'function') updateColorSpacePanel();
+        if (typeof updateCompressionProfilePanel === 'function') updateCompressionProfilePanel();
+        // Restore project state
+        width = project.canvas.baseWidth;
+        height = project.canvas.baseHeight;
         palette = project.palette;
         // After import, reset to first layer
         currentLayerIndex = 0;
@@ -848,8 +973,8 @@ document.getElementById('undo').addEventListener('click', () => {
     redoStack.push(JSON.stringify(project));
     project = JSON.parse(undoStack.pop());
     syncLayerGridToggles();
-    width = project.canvas.width;
-    height = project.canvas.height;
+    width = project.canvas.baseWidth;
+    height = project.canvas.baseHeight;
     palette = project.palette;
     renderPalette();
     renderLayers();
@@ -862,8 +987,8 @@ document.getElementById('redo').addEventListener('click', () => {
     undoStack.push(JSON.stringify(project));
     project = JSON.parse(redoStack.pop());
     syncLayerGridToggles();
-    width = project.canvas.width;
-    height = project.canvas.height;
+    width = project.canvas.baseWidth;
+    height = project.canvas.baseHeight;
     palette = project.palette;
     renderPalette();
     renderLayers();
@@ -892,12 +1017,18 @@ document.getElementById('load-local').addEventListener('click', () => {
     }
     pushHistory();
     project = imported;
-    width = project.canvas.width;
-    height = project.canvas.height;
+    // Refresh metadata and settings panels
+    if (typeof updateMetadataPanel === 'function') updateMetadataPanel();
+    if (typeof updateCanvasSettingsPanel === 'function') updateCanvasSettingsPanel();
+    if (typeof updateCoordSettingsPanel === 'function') updateCoordSettingsPanel();
+    if (typeof updateColorSpacePanel === 'function') updateColorSpacePanel();
+    if (typeof updateCompressionProfilePanel === 'function') updateCompressionProfilePanel();
+    width = project.canvas.baseWidth;
+    height = project.canvas.baseHeight;
     palette = project.palette;
     renderPalette();
-        renderLayers();
-        renderCanvas();
+    renderLayers();
+    renderCanvas();
   } catch (err) {
     alert('Error loading project: ' + err);
   }
