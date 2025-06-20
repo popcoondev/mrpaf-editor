@@ -60,8 +60,13 @@ export function createEmptyProject(width = 16, height = 16) {
         quality: 0.95
       }
     },
-    // Default palette: black, red, green, blue
-    palette: ['#000000', '#FF0000', '#00FF00', '#0000FF'],
+    // Default palette entries: id, display name, hex color, usage tag, locked flag
+    palette: [
+      { id: 0, name: 'Color 1', hex: '#000000', usage: '', locked: false },
+      { id: 1, name: 'Color 2', hex: '#FF0000', usage: '', locked: false },
+      { id: 2, name: 'Color 3', hex: '#00FF00', usage: '', locked: false },
+      { id: 3, name: 'Color 4', hex: '#0000FF', usage: '', locked: false }
+    ],
     layers: [
       {
         id: "layer-1",

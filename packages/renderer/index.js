@@ -29,7 +29,9 @@ export function drawProject(ctx, project, palette = []) {
         const idx = y * layerWidth + x;
         const val = data[idx];
         if (val > 0) {
-          const color = palette[val - 1] || '#000';
+        // Palette entry may be a string (legacy) or object with .hex
+        const entry = palette[val - 1];
+        const color = typeof entry === 'string' ? entry : (entry && entry.hex) ? entry.hex : '#000';
           ctx.fillStyle = color;
           // Compute draw position and size in canvas pixels
           const drawX = (offset.x + x * scale) * pixelSize;

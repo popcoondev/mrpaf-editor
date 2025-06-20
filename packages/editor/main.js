@@ -310,42 +310,93 @@ paletteColorInput.style.display = 'none';
 document.body.appendChild(paletteColorInput);
 function renderPalette() {
   paletteContainer.innerHTML = '';
-  palette.forEach((color, idx) => {
+  palette.forEach((entry, idx) => {
+    // Swatch button
     const swatch = document.createElement('button');
-    swatch.style.backgroundColor = color;
+    swatch.style.backgroundColor = entry.hex;
     swatch.style.width = '24px';
     swatch.style.height = '24px';
     swatch.style.margin = '2px';
     swatch.style.border = idx === currentColorIndex ? '2px solid #000' : '1px solid #888';
-    swatch.title = `Color ${idx + 1}`;
+    swatch.title = entry.name || `Color ${idx + 1}`;
+    // Select color
     swatch.addEventListener('click', () => {
       currentColorIndex = idx;
       renderPalette();
     });
-    // Double-click to edit palette color
+    // Double-click to change hex color (unless locked)
     swatch.addEventListener('dblclick', () => {
-      paletteColorInput.value = color;
+      if (entry.locked) return;
+      paletteColorInput.value = entry.hex;
       paletteColorInput.onchange = () => {
         pushHistory();
-        palette[idx] = paletteColorInput.value;
+        entry.hex = paletteColorInput.value;
         project.palette = palette;
         renderPalette();
       };
       paletteColorInput.click();
     });
     paletteContainer.appendChild(swatch);
+    // Name field
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.value = entry.name;
+    nameInput.disabled = entry.locked;
+    nameInput.style.width = '60px';
+    nameInput.style.margin = '2px';
+    nameInput.addEventListener('change', () => {
+      pushHistory();
+      entry.name = nameInput.value;
+      project.palette = palette;
+    });
+    paletteContainer.appendChild(nameInput);
+    // Locked checkbox
+    const lockCheckbox = document.createElement('input');
+    lockCheckbox.type = 'checkbox';
+    lockCheckbox.checked = entry.locked;
+    lockCheckbox.title = 'Locked';
+    lockCheckbox.style.margin = '2px';
+    lockCheckbox.addEventListener('change', () => {
+      pushHistory();
+      entry.locked = lockCheckbox.checked;
+      project.palette = palette;
+      renderPalette();
+    });
+    paletteContainer.appendChild(lockCheckbox);
+    // Usage field
+    const usageInput = document.createElement('input');
+    usageInput.type = 'text';
+    usageInput.value = entry.usage;
+    usageInput.disabled = entry.locked;
+    usageInput.placeholder = 'usage';
+    usageInput.style.width = '60px';
+    usageInput.style.margin = '2px';
+    usageInput.addEventListener('change', () => {
+      pushHistory();
+      entry.usage = usageInput.value;
+      project.palette = palette;
+    });
+    paletteContainer.appendChild(usageInput);
   });
 }
 renderPalette();
 // Palette editing controls
 document.getElementById('add-color').addEventListener('click', () => {
-  const newColor = '#000000';
-  pushHistory();
-  palette.push(newColor);
-  project.palette = palette;
-  renderPalette();
+    // Add new palette entry
+    const ids = palette.map(e => e.id);
+    const nextId = ids.length ? Math.max(...ids) + 1 : 0;
+    const newEntry = { id: nextId, name: `Color ${nextId + 1}`, hex: '#000000', usage: '', locked: false };
+    pushHistory();
+    palette.push(newEntry);
+    project.palette = palette;
+    renderPalette();
 });
 document.getElementById('remove-color').addEventListener('click', () => {
+  if (palette.length <= 1) {
+    alert('At least one color must remain.');
+    return;
+  }
+  // Remove last palette entry
   if (palette.length <= 1) {
     alert('At least one color must remain.');
     return;
