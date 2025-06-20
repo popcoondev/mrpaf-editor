@@ -37,7 +37,8 @@ export function createEmptyProject(width = 16, height = 16) {
       baseHeight: height,
       pixelUnit: 1.0,
       // Background color (hex RGB)
-      backgroundColor: "#000000",
+      // Background color (hex RGB). Default to white for non-obtrusive background.
+      backgroundColor: "#ffffff",
       pixelAspectRatio: 1.0
     },
     // Color space settings
