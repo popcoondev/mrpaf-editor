@@ -76,12 +76,42 @@
   - [x] Line drawing tool
   - [x] Background image layer support
 
-**Remaining features to implement:**
- - Multi-resolution layer rendering (branch: feature/multi-resolution-rendering)
- - Onion Skin support (branch: feature/onion-skin-support)
- - Symmetry tool
- - Brush presets
- - Animation timeline preview
- - PNG/GIF export
+**Remaining features to implement (full MRPAF v2.0.1 compliance):**
+Below is the high-level roadmap for a reference implementation. Each feature should be developed in its own `feature/mrpaf-XXX` branch.
+
+- Schema root compliance:
+  - `$schema`, `format`, `version`
+  - `metadata` fields: title, author, created/modified, description, tags, license, work, tool, compatibility
+  - `canvas` settings: baseWidth, baseHeight, pixelUnit, backgroundColor, pixelAspectRatio
+  - `coordinateSystem`: origin, xAxis, yAxis, unit, baseUnit, subPixelPrecision, allowFloatingPoint
+  - `colorSpace`: profile, bitDepth, gamma, whitePoint
+  - `compressionProfile`
+- Palette:
+  - Full entry fields: id, name, hex, usage, locked
+  - Auto-derived color channels (rgb, hsv, lab)
+- Layers:
+  - `name`, `parent`, `type`, `blending`, `transform`
+  - `placement`: width, height, unit, anchor, allowSubPixel
+  - `resolution.effectiveSize` calculation
+- Pixel data encoding:
+  - Support for `raw`, `rle`, `sparse` encodings
+  - `pixels.defaultValue`, `pixels.compression`
+- Animations:
+  - Named `animations` object with fps, loops, pingPong, interpolation
+  - Per-animation `frames` with duration, layers, overrides, tweens, events, tags, priority, blendMode
+  - `animationController`: defaultAnimation, transitions, tagGroups
+  - UI timeline preview and playback controls
+- Resources:
+  - `resources` section for sounds, images, scripts
+  - UI panel for resource management
+- JSON IO:
+  - Export/import with full spec adherence and JSON Schema validation
+- UI enhancements:
+  - Metadata editor panel
+  - Canvas settings panel (pixelUnit, backgroundColor, etc.)
+  - ColorSpace/compression settings
+  - Resource editor panel
+  - Animations editor and timeline
+  - Advanced layer properties panel
  
  *Generated and maintained by the AI agent during development to ensure context continuity.*
