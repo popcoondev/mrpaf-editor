@@ -4,8 +4,8 @@ export function drawProject(ctx, project, palette = []) {
   const height = project.canvas.height;
   // Determine pixel size to fit canvas
   const pixelSize = Math.floor(Math.min(ctx.canvas.width / width, ctx.canvas.height / height));
-  // Clear canvas
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  // Preserve any existing globalAlpha (e.g., onion skin)
+  const baseAlpha = ctx.globalAlpha != null ? ctx.globalAlpha : 1;
   // Background grid removed; per-layer grid overlay is handled in the editor
   // Draw pixel layers in order, with multi-resolution support
   project.layers.forEach(layer => {
@@ -19,7 +19,9 @@ export function drawProject(ctx, project, palette = []) {
     const scale = typeof res.scale === 'number' ? res.scale : 1;
     // Placement offsets (in layer units)
     const offset = layer.placement || { x: 0, y: 0 };
-    ctx.globalAlpha = layer.opacity != null ? layer.opacity : 1;
+    // Combine layer opacity with baseAlpha
+    const layerAlpha = (layer.opacity != null ? layer.opacity : 1) * baseAlpha;
+    ctx.globalAlpha = layerAlpha;
     // Iterate over layer pixels
     for (let y = 0; y < layerHeight; y++) {
       for (let x = 0; x < layerWidth; x++) {
@@ -36,6 +38,9 @@ export function drawProject(ctx, project, palette = []) {
         }
       }
     }
-    ctx.globalAlpha = 1;
+    // Restore baseAlpha after drawing this layer
+    ctx.globalAlpha = baseAlpha;
   });
+  // Restore globalAlpha to baseAlpha after all layers
+  ctx.globalAlpha = baseAlpha;
 }

@@ -1,12 +1,19 @@
 import { createEmptyProject } from '../core/index.js';
 import { drawProject } from '../renderer/index.js';
-// Background image state and input
+// Background image layer handling
 const bgFileInput = document.createElement('input');
 bgFileInput.type = 'file';
 bgFileInput.accept = 'image/*';
 bgFileInput.style.display = 'none';
 document.body.appendChild(bgFileInput);
+// Background image state
+// Background image state
 let backgroundImg = null;
+let backgroundVisible = true;
+let backgroundOpacity = 1;
+// Onion skin state
+let onionEnabled = false;
+let onionOpacity = 0.5;
 
 // Configuration
 let width = 16;
@@ -14,7 +21,14 @@ let height = 16;
 
 // Create a new project
 // Initialize project and per-layer grid toggles
+// Create a new project and initialize animation timeline
 let project = createEmptyProject(width, height);
+// Initialize frames: each frame holds its own layers and background
+project.frames = [{
+  layers: project.layers,
+  backgroundImageData: project.backgroundImage || null
+}];
+let currentFrameIndex = 0;
 // Grid visibility toggles per layer (editor-only state)
 let layerGridToggles = [];
 function syncLayerGridToggles() {
@@ -82,14 +96,33 @@ function renderCanvas() {
   // Reset transform and clear canvas
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // Draw background image full canvas
-  if (backgroundImg) {
+  // Draw background image full canvas with visibility and opacity
+  if (backgroundImg && backgroundVisible) {
+    ctx.globalAlpha = backgroundOpacity;
     ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 1;
   }
   // Apply pan and zoom for pixel layers
   ctx.translate(panX, panY);
   ctx.scale(zoom, zoom);
-  // Draw pixel layers
+  // Onion skin overlay: draw adjacent frames behind current
+  if (onionEnabled && project.frames && project.frames.length > 1) {
+    ctx.globalAlpha = onionOpacity;
+    // Previous frame
+    if (currentFrameIndex > 0) {
+      const prevFrame = project.frames[currentFrameIndex - 1];
+      const prevProj = { canvas: project.canvas, layers: prevFrame.layers };
+      drawProject(ctx, prevProj, palette);
+    }
+    // Next frame
+    if (currentFrameIndex < project.frames.length - 1) {
+      const nextFrame = project.frames[currentFrameIndex + 1];
+      const nextProj = { canvas: project.canvas, layers: nextFrame.layers };
+      drawProject(ctx, nextProj, palette);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // Draw pixel layers for current frame on top
   drawProject(ctx, project, palette);
   // Draw per-layer grid overlays
   // Compute base pixel size (before zoom transform)
@@ -278,6 +311,7 @@ function renderLayers() {
     });
     li.appendChild(downBtn);
     // Append opacity slider after reorder
+    opacityInput.translated = true; // Ensure it is translated properly
     li.appendChild(opacityInput);
     // Resolution controls: pixel array size and scale
     (function() {
@@ -356,6 +390,31 @@ function renderLayers() {
         renderCanvas();
       });
       li.appendChild(sInput);
+      // Layer placement offset inputs
+      const xOffInput = document.createElement('input');
+      xOffInput.type = 'number';
+      xOffInput.value = (layer.placement && layer.placement.x) || 0;
+      xOffInput.style.width = '50px';
+      xOffInput.title = 'Layer offset X';
+      xOffInput.addEventListener('change', () => {
+        pushHistory();
+        layer.placement = layer.placement || { x: 0, y: 0 };
+        layer.placement.x = parseInt(xOffInput.value, 10) || 0;
+        renderCanvas();
+      });
+      li.appendChild(xOffInput);
+      const yOffInput = document.createElement('input');
+      yOffInput.type = 'number';
+      yOffInput.value = (layer.placement && layer.placement.y) || 0;
+      yOffInput.style.width = '50px';
+      yOffInput.title = 'Layer offset Y';
+      yOffInput.addEventListener('change', () => {
+        pushHistory();
+        layer.placement = layer.placement || { x: 0, y: 0 };
+        layer.placement.y = parseInt(yOffInput.value, 10) || 0;
+        renderCanvas();
+      });
+      li.appendChild(yOffInput);
     })();
     layerList.appendChild(li);
   });
@@ -409,6 +468,8 @@ document.getElementById('remove-layer').addEventListener('click', () => {
 
 // Current tool state
 let tool = 'pen';
+// Symmetry mode: none, vertical, horizontal, both
+let symmetryMode = 'none';
 // For line tool: store starting point
 let lineStart = null;
 // Draw a straight line on the current layer using Bresenham's algorithm
@@ -440,6 +501,99 @@ document.getElementById('eraser').addEventListener('click', () => tool = 'eraser
 document.getElementById('line').addEventListener('click', () => { tool = 'line'; lineStart = null; });
 document.getElementById('color-picker').addEventListener('click', () => tool = 'colorpicker');
 document.getElementById('bucket').addEventListener('click', () => tool = 'bucket');
+// Symmetry mode selector binding
+const symmetrySelect = document.getElementById('symmetry-mode');
+symmetrySelect.addEventListener('change', () => {
+  symmetryMode = symmetrySelect.value;
+});
+// Brush shape selector binding
+const brushShapeSelect = document.getElementById('brush-shape');
+let brushShape = brushShapeSelect.value;
+brushShapeSelect.addEventListener('change', () => {
+  brushShape = brushShapeSelect.value;
+});
+// Onion skin controls binding
+const onionCheckbox = document.getElementById('onion-enable');
+const onionOpacityInput = document.getElementById('onion-opacity');
+onionCheckbox.addEventListener('change', () => {
+  onionEnabled = onionCheckbox.checked;
+  renderCanvas();
+});
+onionOpacityInput.addEventListener('input', () => {
+  onionOpacity = parseFloat(onionOpacityInput.value);
+  renderCanvas();
+});
+// Animation timeline bindings
+const prevFrameBtn = document.getElementById('prev-frame');
+const nextFrameBtn = document.getElementById('next-frame');
+const addFrameBtn = document.getElementById('add-frame');
+const removeFrameBtn = document.getElementById('remove-frame');
+const playBtn = document.getElementById('play');
+const fpsInput = document.getElementById('fps-input');
+const frameIndicator = document.getElementById('frame-indicator');
+function updateFrameIndicator() {
+  frameIndicator.textContent = `Frame ${currentFrameIndex+1}/${project.frames.length}`;
+}
+function setFrame(idx) {
+  // Save current state
+  project.frames[currentFrameIndex].layers = project.layers;
+  project.frames[currentFrameIndex].backgroundImageData = project.backgroundImage || null;
+  // Bound index
+  currentFrameIndex = Math.max(0, Math.min(idx, project.frames.length - 1));
+  // Load new frame state
+  project.layers = project.frames[currentFrameIndex].layers;
+  const bgData = project.frames[currentFrameIndex].backgroundImageData;
+  if (bgData) {
+    const img = new Image();
+    img.onload = () => { backgroundImg = img; renderCanvas(); };
+    img.src = bgData;
+    project.backgroundImage = bgData;
+  } else {
+    backgroundImg = null;
+    project.backgroundImage = null;
+    renderCanvas();
+  }
+  syncLayerGridToggles();
+  renderLayers();
+  updateFrameIndicator();
+}
+prevFrameBtn.addEventListener('click', () => setFrame(currentFrameIndex - 1));
+nextFrameBtn.addEventListener('click', () => setFrame(currentFrameIndex + 1));
+addFrameBtn.addEventListener('click', () => {
+  // Save current state
+  project.frames[currentFrameIndex].layers = project.layers;
+  project.frames[currentFrameIndex].backgroundImageData = project.backgroundImage || null;
+  // Duplicate layers for new frame
+  const newLayers = JSON.parse(JSON.stringify(project.layers));
+  project.frames.push({ layers: newLayers, backgroundImageData: null });
+  setFrame(project.frames.length - 1);
+});
+removeFrameBtn.addEventListener('click', () => {
+  if (project.frames.length <= 1) { alert('Cannot remove the last frame.'); return; }
+  project.frames.splice(currentFrameIndex, 1);
+  setFrame(Math.min(currentFrameIndex, project.frames.length - 1));
+});
+// Play / stop animation preview
+let isPlaying = false;
+let playTimer = null;
+playBtn.addEventListener('click', () => {
+  if (!isPlaying) {
+    // Start playback
+    const fps = Math.max(1, parseInt(fpsInput.value, 10) || 1);
+    playBtn.textContent = 'Stop';
+    isPlaying = true;
+    playTimer = setInterval(() => {
+      const next = (currentFrameIndex + 1) % project.frames.length;
+      setFrame(next);
+    }, 1000 / fps);
+  } else {
+    // Stop playback
+    clearInterval(playTimer);
+    playBtn.textContent = 'Play';
+    isPlaying = false;
+  }
+});
+updateFrameIndicator();
 document.getElementById('clear').addEventListener('click', () => {
   pushHistory();
   // Clear pixel data to transparent (null)
@@ -457,11 +611,139 @@ document.getElementById('export').addEventListener('click', () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'project.mrpaf.json';
+  // Download MRPAF project with .mrpaf extension (JSON format)
+  a.download = 'project.mrpaf';
   a.click();
   URL.revokeObjectURL(url);
 });
+// Export current pixel art as PNG image
+document.getElementById('export-image').addEventListener('click', () => {
+  const w = project.canvas.width;
+  const h = project.canvas.height;
+  // Create offscreen canvas at base resolution
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = w;
+  exportCanvas.height = h;
+  const exportCtx = exportCanvas.getContext('2d');
+  exportCtx.imageSmoothingEnabled = false;
+  // Clear
+  exportCtx.clearRect(0, 0, w, h);
+  // Draw background if present
+  if (backgroundImg && backgroundVisible) {
+    exportCtx.globalAlpha = backgroundOpacity;
+    exportCtx.drawImage(backgroundImg, 0, 0, w, h);
+    exportCtx.globalAlpha = 1;
+  }
+  // Draw pixel layers without pan/zoom
+  drawProject(exportCtx, project, palette);
+  // Download as PNG
+  exportCanvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'project.png';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+});
+// Export all frames as a single sprite sheet PNG
+document.getElementById('export-spritesheet').addEventListener('click', () => {
+  // Export all frames as a single sprite sheet PNG at UI canvas resolution
+  const frameCount = project.frames.length;
+  const wPx = project.canvas.width;
+  const hPx = project.canvas.height;
+  const sheetCanvas = document.createElement('canvas');
+  sheetCanvas.width = wPx * frameCount;
+  sheetCanvas.height = hPx;
+  const sheetCtx = sheetCanvas.getContext('2d');
+  sheetCtx.imageSmoothingEnabled = false;
+  // Save current state
+  const origFrame = currentFrameIndex;
+  const origZoom = zoom, origPanX = panX, origPanY = panY;
+  // Reset pan/zoom for export
+  zoom = 1; panX = 0; panY = 0;
+  // Render each frame and blit
+  for (let i = 0; i < frameCount; i++) {
+    setFrame(i);
+    renderCanvas();
+    sheetCtx.drawImage(canvas, i * wPx, 0, wPx, hPx);
+  }
+  // Restore state
+  zoom = origZoom; panX = origPanX; panY = origPanY;
+  setFrame(origFrame);
+  renderCanvas();
+  // Download sprite sheet
+  sheetCanvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'spritesheet.png';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+});
+// Export animated GIF of all frames
+document.getElementById('export-gif').addEventListener('click', () => {
+  // Ensure GIF.js is available in this module (globalThis.GIF)
+  // Export animated GIF of all frames
+  const GIFCtor = globalThis.GIF || window.GIF;
+  if (!GIFCtor) {
+    alert('GIF.js library not loaded. Cannot export GIF.');
+    return;
+  }
+  const frameCount = project.frames.length;
+  // Use UI canvas resolution for crisp pixel art in GIF
+  const wPx = canvas.width;
+  const hPx = canvas.height;
+  console.log('Export GIF using resolution', wPx, 'x', hPx, 'for', frameCount, 'frames');
+  const fps = Math.max(1, parseInt(document.getElementById('fps-input').value, 10) || 1);
+  // Load worker script via fetch to avoid cross-origin Worker errors
+  fetch('https://cdn.jsdelivr.net/npm/gif.js/dist/gif.worker.js')
+    .then(res => {
+      if (!res.ok) throw new Error(res.statusText);
+      return res.text();
+    })
+    .then(workerSource => {
+      const workerBlob = new Blob([workerSource], { type: 'application/javascript' });
+      const workerBlobUrl = URL.createObjectURL(workerBlob);
+      const gif = new GIFCtor({
+        workers: 2,
+        workerScript: workerBlobUrl,
+        quality: 10,
+        width: wPx,
+        height: hPx
+      });
+      // Save state
+      const origFrame = currentFrameIndex;
+      const origZoom = zoom, origPanX = panX, origPanY = panY;
+      zoom = 1; panX = 0; panY = 0;
+      // Build frames by capturing the rendered canvas
+      for (let i = 0; i < frameCount; i++) {
+        setFrame(i);
+        renderCanvas();
+        gif.addFrame(canvas, { delay: 1000 / fps, copy: true });
+      }
+      // Restore state
+      zoom = origZoom; panX = origPanX; panY = origPanY;
+      setFrame(origFrame);
+      renderCanvas();
+      // Render and download
+      gif.on('finished', blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'animation.gif';
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+      gif.render();
+    })
+    .catch(err => {
+      alert('Failed to load GIF worker script: ' + err);
+    });
+});
 // Import JSON functionality
+// File input used for importing MRPAF JSON (.mrpaf/.json)
 const importFileInput = document.getElementById('import-file');
 document.getElementById('import').addEventListener('click', () => {
   importFileInput.value = '';
@@ -515,6 +797,17 @@ bgFileInput.addEventListener('change', (e) => {
     img.src = dataUrl;
   };
   reader.readAsDataURL(file);
+});
+// Background visibility and opacity controls
+const bgVisibleCheckbox = document.getElementById('background-visible');
+const bgOpacityInput = document.getElementById('background-opacity');
+bgVisibleCheckbox.addEventListener('change', () => {
+  backgroundVisible = bgVisibleCheckbox.checked;
+  renderCanvas();
+});
+bgOpacityInput.addEventListener('input', () => {
+  backgroundOpacity = parseFloat(bgOpacityInput.value);
+  renderCanvas();
 });
 
 // Bind Undo/Redo buttons
@@ -626,12 +919,29 @@ canvas.addEventListener('click', (e) => {
     const half = Math.floor(brushSize / 2);
     const layer = project.layers[currentLayerIndex];
     const data = layer.pixels.data;
+    const value = currentColorIndex + 1;
+    const w = layerW, h = layerH;
     for (let dy = -half; dy <= half; dy++) {
       for (let dx = -half; dx <= half; dx++) {
+        // Brush shape filter
+        if (brushShape === 'circle' && dx * dx + dy * dy > half * half) continue;
+        if (brushShape === 'cross' && dx !== 0 && dy !== 0) continue;
+        // Brush shape filter
+        if (brushShape === 'circle' && dx * dx + dy * dy > half * half) continue;
+        if (brushShape === 'cross' && dx !== 0 && dy !== 0) continue;
         const xi = layerX + dx;
         const yi = layerY + dy;
-        if (xi >= 0 && xi < layerW && yi >= 0 && yi < layerH) {
-          data[yi * layerW + xi] = currentColorIndex + 1;
+        if (xi >= 0 && xi < w && yi >= 0 && yi < h) {
+          // Apply symmetry: original and mirrored points
+          const pts = [{ x: xi, y: yi }];
+          if (symmetryMode === 'vertical' || symmetryMode === 'both') pts.push({ x: w - 1 - xi, y: yi });
+          if (symmetryMode === 'horizontal' || symmetryMode === 'both') pts.push({ x: xi, y: h - 1 - yi });
+          if (symmetryMode === 'both') pts.push({ x: w - 1 - xi, y: h - 1 - yi });
+          pts.forEach(pt => {
+            if (pt.x >= 0 && pt.x < w && pt.y >= 0 && pt.y < h) {
+              data[pt.y * w + pt.x] = value;
+            }
+          });
         }
       }
     }
@@ -642,12 +952,22 @@ canvas.addEventListener('click', (e) => {
     const half = Math.floor(brushSize / 2);
     const layer = project.layers[currentLayerIndex];
     const data = layer.pixels.data;
+    const w = layerW, h = layerH;
+    const value = 0;
     for (let dy = -half; dy <= half; dy++) {
       for (let dx = -half; dx <= half; dx++) {
         const xi = layerX + dx;
         const yi = layerY + dy;
-        if (xi >= 0 && xi < layerW && yi >= 0 && yi < layerH) {
-          data[yi * layerW + xi] = 0;
+        if (xi >= 0 && xi < w && yi >= 0 && yi < h) {
+          const pts = [{ x: xi, y: yi }];
+          if (symmetryMode === 'vertical' || symmetryMode === 'both') pts.push({ x: w - 1 - xi, y: yi });
+          if (symmetryMode === 'horizontal' || symmetryMode === 'both') pts.push({ x: xi, y: h - 1 - yi });
+          if (symmetryMode === 'both') pts.push({ x: w - 1 - xi, y: h - 1 - yi });
+          pts.forEach(pt => {
+            if (pt.x >= 0 && pt.x < w && pt.y >= 0 && pt.y < h) {
+              data[pt.y * w + pt.x] = value;
+            }
+          });
         }
       }
     }
@@ -671,18 +991,41 @@ canvas.addEventListener('click', (e) => {
     currentColorIndex = picked;
     renderPalette();
   } else if (tool === 'bucket') {
-    // Flood fill on current layer
+    // Flood fill on current layer with symmetry support
     pushHistory();
-    // Flood fill on current layer
     const layer = project.layers[currentLayerIndex];
     if (layer.pixels && layer.pixels.data) {
       const data = layer.pixels.data;
-      const target = data[layerY * layerW + layerX];
+      const w = layerW, h = layerH;
       const replacement = currentColorIndex + 1;
-      if (target !== replacement) {
-        const w = layerW;
-        const h = layerH;
-        const stack = [layerY * layerW + layerX];
+      // Prepare seeds and targets for symmetric fills
+      const seeds = [];
+      const targets = [];
+      // Original point
+      seeds.push({ x: layerX, y: layerY });
+      targets.push(data[layerY * w + layerX]);
+      // Vertical symmetry
+      if (symmetryMode === 'vertical' || symmetryMode === 'both') {
+        const sx = w - 1 - layerX, sy = layerY;
+        seeds.push({ x: sx, y: sy });
+        targets.push(data[sy * w + sx]);
+      }
+      // Horizontal symmetry
+      if (symmetryMode === 'horizontal' || symmetryMode === 'both') {
+        const sx = layerX, sy = h - 1 - layerY;
+        seeds.push({ x: sx, y: sy });
+        targets.push(data[sy * w + sx]);
+      }
+      // Both axes symmetry
+      if (symmetryMode === 'both') {
+        const sx = w - 1 - layerX, sy = h - 1 - layerY;
+        seeds.push({ x: sx, y: sy });
+        targets.push(data[sy * w + sx]);
+      }
+      // Flood fill function
+      const floodFillAt = (startX, startY, target) => {
+        if (target === replacement) return;
+        const stack = [startY * w + startX];
         while (stack.length) {
           const i = stack.pop();
           if (data[i] !== target) continue;
@@ -694,7 +1037,11 @@ canvas.addEventListener('click', (e) => {
           if (y0 > 0) stack.push(i - w);
           if (y0 < h - 1) stack.push(i + w);
         }
-      }
+      };
+      // Apply flood fill for each seed
+      seeds.forEach((s, idx) => {
+        floodFillAt(s.x, s.y, targets[idx]);
+      });
     }
   } else if (tool === 'line') {
     // Draw line on current layer between two clicks
@@ -702,7 +1049,21 @@ canvas.addEventListener('click', (e) => {
       lineStart = { x: layerX, y: layerY };
     } else {
       pushHistory();
-      drawLine(lineStart.x, lineStart.y, layerX, layerY);
+      // Draw primary line
+      const w = layerW, h = layerH;
+      const x0 = lineStart.x, y0 = lineStart.y;
+      const x1 = layerX, y1 = layerY;
+      drawLine(x0, y0, x1, y1);
+      // Symmetrical lines
+      if (symmetryMode === 'vertical' || symmetryMode === 'both') {
+        drawLine(w - 1 - x0, y0, w - 1 - x1, y1);
+      }
+      if (symmetryMode === 'horizontal' || symmetryMode === 'both') {
+        drawLine(x0, h - 1 - y0, x1, h - 1 - y1);
+      }
+      if (symmetryMode === 'both') {
+        drawLine(w - 1 - x0, h - 1 - y0, w - 1 - x1, h - 1 - y1);
+      }
       lineStart = null;
     }
   }
