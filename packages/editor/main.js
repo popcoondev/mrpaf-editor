@@ -36,6 +36,34 @@ function syncLayerGridToggles() {
   layerGridToggles = project.layers.map((_, idx) => layerGridToggles[idx] || false);
 }
 syncLayerGridToggles();
+// --- Metadata panel setup ---
+const metaTitle = document.getElementById('meta-title');
+const metaAuthor = document.getElementById('meta-author');
+const metaDescription = document.getElementById('meta-description');
+const metaTags = document.getElementById('meta-tags');
+const metaLicense = document.getElementById('meta-license');
+/** Populate metadata inputs from the project object */
+function updateMetadataPanel() {
+  metaTitle.value = project.metadata.title || '';
+  metaAuthor.value = project.metadata.author || '';
+  metaDescription.value = project.metadata.description || '';
+  metaTags.value = (project.metadata.tags || []).join(',');
+  metaLicense.value = project.metadata.license || '';
+}
+// Initialize metadata panel
+updateMetadataPanel();
+// Update metadata on user input
+[metaTitle, metaAuthor, metaDescription, metaTags, metaLicense].forEach(input => {
+  input.addEventListener('input', () => {
+    pushHistory();
+    project.metadata.title = metaTitle.value;
+    project.metadata.author = metaAuthor.value;
+    project.metadata.description = metaDescription.value;
+    project.metadata.tags = metaTags.value.split(',').map(s => s.trim()).filter(s => s);
+    project.metadata.license = metaLicense.value;
+    project.metadata.modified = new Date().toISOString();
+  });
+});
 // History stacks for undo/redo
 let undoStack = [];
 let redoStack = [];
@@ -83,6 +111,8 @@ document.getElementById('set-resolution').addEventListener('click', () => {
   renderLayers();
   renderCanvas();
   updateUndoRedoButtons();
+  // Reset metadata panel after new project
+  if (typeof updateMetadataPanel === 'function') updateMetadataPanel();
 });
 // Zoom and pan state
 let zoom = 1;
@@ -762,6 +792,8 @@ importFileInput.addEventListener('change', (e) => {
         }
         project = imported;
         syncLayerGridToggles();
+        // Refresh metadata inputs
+        if (typeof updateMetadataPanel === 'function') updateMetadataPanel();
         width = project.canvas.width;
         height = project.canvas.height;
         palette = project.palette;

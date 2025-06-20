@@ -1,8 +1,26 @@
 // MRPAF core module: create and manage MRPAF project data
 export function createEmptyProject(width = 16, height = 16) {
+  const now = new Date().toISOString();
   return {
+    // JSON Schema reference for MRPAF v2.0.1
+    "$schema": "https://mrpaf.org/schemas/v2.0.1/mrpaf.schema.json",
+    // Format identifier
+    format: "MRPAF",
+    // Format version
     version: "2.0.1",
-    metadata: {},
+    // Project metadata
+    metadata: {
+      title: "",
+      author: "",
+      created: now,
+      modified: now,
+      description: "",
+      tags: [],
+      license: "",
+      work: { series: "", character: "", scene: "", variation: "" },
+      tool: { name: "MRPAF Editor MVP", version: "2.0.1", exporter: "MRPAF Editor MVP" },
+      compatibility: { minVersion: "2.0.1", features: [] }
+    },
     coordinateSystem: { xOffset: 0, yOffset: 0 },
     canvas: { width, height },
     // Default palette: black, red, green, blue

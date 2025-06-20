@@ -19,6 +19,21 @@
 </head>
 <body>
   <h1>MRPAF Editor MVP</h1>
+  <!-- Project Metadata -->
+  <div id="metadata-panel" style="margin-top:10px; border:1px solid #ccc; padding:8px;">
+    <h2>Project Metadata</h2>
+    <label>Title: <input type="text" id="meta-title" style="width:200px;" /></label>
+    <label style="margin-left:16px;">Author: <input type="text" id="meta-author" style="width:150px;" /></label>
+    <div style="margin-top:8px;">
+      <label>Description:<br/><textarea id="meta-description" rows="2" style="width:100%;"></textarea></label>
+    </div>
+    <div style="margin-top:8px;">
+      <label>Tags: <input type="text" id="meta-tags" placeholder="tag1,tag2" style="width:100%;" /></label>
+    </div>
+    <div style="margin-top:8px;">
+      <label>License: <input type="text" id="meta-license" style="width:200px;" /></label>
+    </div>
+  </div>
   <!-- Resolution controls -->
   <div id="resolution-controls" style="margin-top:10px;">
     <label for="canvas-width">Width:</label>
