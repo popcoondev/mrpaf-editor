@@ -31,15 +31,19 @@ export function createEmptyProject(width = 16, height = 16) {
       subPixelPrecision: 4,
       allowFloatingPoint: false
     },
-    // Canvas settings
+    // Canvas settings (legacy and new)
     canvas: {
+      // Legacy resolution fields for compatibility
+      width: width,
+      height: height,
+      // Base resolution fields
       baseWidth: width,
       baseHeight: height,
+      // Physical display settings
       pixelUnit: 1.0,
-      // Background color (hex RGB)
-      // Background color (hex RGB). Default to white for non-obtrusive background.
-      backgroundColor: "#ffffff",
-      pixelAspectRatio: 1.0
+      pixelAspectRatio: 1.0,
+      // Background color (hex RGB). Default to white.
+      backgroundColor: "#ffffff"
     },
     // Color space settings
     colorSpace: {
