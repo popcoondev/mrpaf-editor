@@ -998,6 +998,7 @@ const frameTagList = document.getElementById('frame-tag-list');
 let currentFrameTagIndex = -1;
 /** Render the list of tags for the current frame */
 function renderFrameTags() {
+  if (!frameTagList) return;
   const tags = project.frames[currentFrameIndex]?.tags || [];
   frameTagList.innerHTML = '';
   tags.forEach((tag, idx) => {
@@ -1063,6 +1064,7 @@ const frameEventList = document.getElementById('frame-event-list');
 let currentFrameEventIndex = -1;
 /** Render list of events for current frame */
 function renderFrameEvents() {
+  if (!frameEventList) return;
   const events = project.frames[currentFrameIndex]?.events || [];
   frameEventList.innerHTML = '';
   events.forEach((ev, idx) => {
