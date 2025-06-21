@@ -1024,14 +1024,12 @@ if (addFrameTagBtn) {
     pushHistory();
     const frame = project.frames[currentFrameIndex];
     frame.tags = Array.isArray(frame.tags) ? frame.tags : [];
-    const tags = frame.tags;
-    if (!tags.includes(val)) {
-      tags.push(val);
+    if (!frame.tags.includes(val)) {
+      frame.tags.push(val);
       project.metadata.modified = new Date().toISOString();
     }
     frameTagInput.value = '';
-    // Select the newly added tag
-    currentFrameTagIndex = tags.length - 1;
+    currentFrameTagIndex = frame.tags.length - 1;
     renderFrameTags();
   });
 }
@@ -1039,10 +1037,9 @@ if (removeFrameTagBtn) {
   removeFrameTagBtn.addEventListener('click', () => {
     const frame = project.frames[currentFrameIndex];
     frame.tags = Array.isArray(frame.tags) ? frame.tags : [];
-    const tags = frame.tags;
-    if (currentFrameTagIndex < 0 || currentFrameTagIndex >= tags.length) return;
+    if (currentFrameTagIndex < 0 || currentFrameTagIndex >= frame.tags.length) return;
     pushHistory();
-    tags.splice(currentFrameTagIndex, 1);
+    frame.tags.splice(currentFrameTagIndex, 1);
     project.metadata.modified = new Date().toISOString();
     currentFrameTagIndex = -1;
     renderFrameTags();
@@ -1093,14 +1090,12 @@ if (addFrameEventBtn) {
     pushHistory();
     const frame = project.frames[currentFrameIndex];
     frame.events = Array.isArray(frame.events) ? frame.events : [];
-    const events = frame.events;
-    if (!events.includes(val)) {
-      events.push(val);
+    if (!frame.events.includes(val)) {
+      frame.events.push(val);
       project.metadata.modified = new Date().toISOString();
     }
     frameEventInput.value = '';
-    // Select the newly added event
-    currentFrameEventIndex = events.length - 1;
+    currentFrameEventIndex = frame.events.length - 1;
     renderFrameEvents();
   });
 }
@@ -1108,10 +1103,9 @@ if (removeFrameEventBtn) {
   removeFrameEventBtn.addEventListener('click', () => {
     const frame = project.frames[currentFrameIndex];
     frame.events = Array.isArray(frame.events) ? frame.events : [];
-    const events = frame.events;
-    if (currentFrameEventIndex < 0 || currentFrameEventIndex >= events.length) return;
+    if (currentFrameEventIndex < 0 || currentFrameEventIndex >= frame.events.length) return;
     pushHistory();
-    events.splice(currentFrameEventIndex, 1);
+    frame.events.splice(currentFrameEventIndex, 1);
     project.metadata.modified = new Date().toISOString();
     currentFrameEventIndex = -1;
     renderFrameEvents();
