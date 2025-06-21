@@ -723,6 +723,37 @@ function renderLayers() {
         renderCanvas();
       });
       li.appendChild(yOffInput);
+      // Anchor selector
+      const anchorSelect = document.createElement('select');
+      ['top-left','top-right','bottom-left','bottom-right','center'].forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt;
+        o.textContent = opt;
+        if (layer.placement.anchor === opt) o.selected = true;
+        anchorSelect.appendChild(o);
+      });
+      anchorSelect.title = 'Layer anchor';
+      anchorSelect.style.marginLeft = '4px';
+      anchorSelect.addEventListener('change', () => {
+        pushHistory();
+        layer.placement.anchor = anchorSelect.value;
+        project.metadata.modified = new Date().toISOString();
+        renderCanvas();
+      });
+      li.appendChild(anchorSelect);
+      // Allow sub-pixel checkbox
+      const subPixelCheckbox = document.createElement('input');
+      subPixelCheckbox.type = 'checkbox';
+      subPixelCheckbox.checked = layer.placement.allowSubPixel;
+      subPixelCheckbox.title = 'Allow sub-pixel placement';
+      subPixelCheckbox.style.marginLeft = '4px';
+      subPixelCheckbox.addEventListener('change', () => {
+        pushHistory();
+        layer.placement.allowSubPixel = subPixelCheckbox.checked;
+        project.metadata.modified = new Date().toISOString();
+        renderCanvas();
+      });
+      li.appendChild(subPixelCheckbox);
     })();
     layerList.appendChild(li);
   });

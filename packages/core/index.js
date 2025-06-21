@@ -181,7 +181,14 @@ export function createEmptyProject(width = 16, height = 16) {
           effectiveSize: { width: width * 1.0, height: height * 1.0 }
         },
         // Placement offset (in base pixels)
-        placement: { x: 0, y: 0 },
+        placement: {
+          x: 0,
+          y: 0,
+          // Anchor presets: top-left, top-right, bottom-left, bottom-right, center
+          anchor: 'top-left',
+          // Allow fractional sub-pixel placement
+          allowSubPixel: false
+        },
         pixels: {
           format: "Array",
           width,

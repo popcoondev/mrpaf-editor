@@ -30,6 +30,9 @@ describe('createEmptyProject', () => {
     expect(layer.transform).toEqual({ scale: 1.0, rotation: 0 });
     // Resolution effectiveSize
     expect(layer.resolution).toHaveProperty('effectiveSize');
+    // Placement defaults
+    expect(layer.placement).toHaveProperty('anchor', 'top-left');
+    expect(layer.placement).toHaveProperty('allowSubPixel', false);
     expect(layer.resolution.effectiveSize).toEqual({ width: width * layer.resolution.scale, height: height * layer.resolution.scale });
     // Palette defaults
     expect(Array.isArray(project.palette)).toBe(true);
