@@ -188,6 +188,7 @@
     <!-- Accept .mrpaf or .json files for MRPAF projects -->
     <input type="file" id="import-file" accept=".mrpaf,application/json" style="display:none" />
   </div>
-  <script type="module" src="./main.js"></script>
+  <!-- Cache-busting query param for development reloads -->
+  <script type="module" src="./main.js?v=2"></script>
 </body>
 </html>
