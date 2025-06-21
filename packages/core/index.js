@@ -93,7 +93,7 @@ export function updateColorSpaces(entry) {
  */
 export function createEmptyProject(width = 16, height = 16) {
   const now = new Date().toISOString();
-  return {
+  const project = {
     // JSON Schema reference for MRPAF v2.0.1
     "$schema": "https://mrpaf.org/schemas/v2.0.1/mrpaf.schema.json",
     // Format identifier
@@ -162,14 +162,23 @@ export function createEmptyProject(width = 16, height = 16) {
     layers: [
       {
         id: "layer-1",
+        // Parent layer id for hierarchy; null if top-level
+        parent: null,
+        // Layer type (e.g., pixel, image)
         type: "pixel",
         visible: true,
         locked: false,
         opacity: 1,
+        // Blending mode (e.g., normal, multiply, screen)
+        blending: "normal",
+        // Transform properties: identity by default
+        transform: { scale: 1.0, rotation: 0 },
         // Multi-resolution support: pixel array size and scale
         resolution: {
           pixelArraySize: { width, height },
-          scale: 1.0
+          scale: 1.0,
+          // Effective size = pixelArraySize * scale
+          effectiveSize: { width: width * 1.0, height: height * 1.0 }
         },
         // Placement offset (in base pixels)
         placement: { x: 0, y: 0 },
@@ -182,6 +191,92 @@ export function createEmptyProject(width = 16, height = 16) {
         }
       }
     ],
+    // Root animations settings
+    animations: {
+      fps: 24,
+      loops: true,
+      pingPong: false,
+      interpolation: 'none'
+    },
     editorSettings: []
   };
+  // Automatically derive color spaces for initial palette entries
+  project.palette.forEach(entry => updateColorSpaces(entry));
+  return project;
+}
+/**
+ * Encode pixel data using raw format (no compression).
+ * @param {Array<any>} data
+ * @returns {{ format: 'raw', data: Array<any> }}
+ */
+export function encodeRaw(data) {
+  return { format: 'raw', data: data.slice() };
+}
+/**
+ * Decode raw pixel data format.
+ * @param {{ format: 'raw', data: Array<any> }} encoded
+ * @returns {Array<any>}
+ */
+export function decodeRaw(encoded) {
+  return encoded.data.slice();
+}
+/**
+ * Encode pixel data using simple run-length encoding.
+ * @param {Array<any>} data
+ * @returns {{ format: 'rle', data: Array<{value:any, count:number}> }}
+ */
+export function encodeRle(data) {
+  const result = [];
+  if (data.length === 0) return { format: 'rle', data: [] };
+  let prev = data[0];
+  let count = 1;
+  for (let i = 1; i < data.length; i++) {
+    const v = data[i];
+    if (v === prev) count++;
+    else {
+      result.push({ value: prev, count });
+      prev = v;
+      count = 1;
+    }
+  }
+  result.push({ value: prev, count });
+  return { format: 'rle', data: result };
+}
+/**
+ * Decode run-length encoded pixel data.
+ * @param {{ format: 'rle', data: Array<{value:any, count:number}> }} encoded
+ * @returns {Array<any>}
+ */
+export function decodeRle(encoded) {
+  const out = [];
+  for (const { value, count } of encoded.data) {
+    for (let i = 0; i < count; i++) out.push(value);
+  }
+  return out;
+}
+/**
+ * Encode pixel data using sparse encoding (store only non-default entries).
+ * @param {Array<any>} data
+ * @param {any} defaultValue
+ * @returns {{ format: 'sparse', defaultValue: any, entries: Array<{ index: number, value: any }> }}
+ */
+export function encodeSparse(data, defaultValue = null) {
+  const entries = [];
+  data.forEach((v, idx) => {
+    if (v !== defaultValue) entries.push({ index: idx, value: v });
+  });
+  return { format: 'sparse', defaultValue, entries };
+}
+/**
+ * Decode sparse encoded pixel data.
+ * @param {{ format: 'sparse', defaultValue: any, entries: Array<{ index: number, value: any }> }} encoded
+ * @param {number} length
+ * @returns {Array<any>}
+ */
+export function decodeSparse(encoded, length) {
+  const out = new Array(length).fill(encoded.defaultValue);
+  for (const { index, value } of encoded.entries) {
+    if (index >= 0 && index < length) out[index] = value;
+  }
+  return out;
 }

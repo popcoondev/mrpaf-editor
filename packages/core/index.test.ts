@@ -19,9 +19,18 @@ describe('createEmptyProject', () => {
     expect(Array.isArray(project.layers)).toBe(true);
     expect(project.layers.length).toBeGreaterThan(0);
     const layer = project.layers[0];
+    // Pixel data array
     expect(Array.isArray(layer.pixels.data)).toBe(true);
     expect(layer.pixels.data).toHaveLength(width * height);
     expect(layer.pixels.data.every(v => v === null)).toBe(true);
+    // Layer hierarchy and properties
+    expect(layer.parent).toBeNull();
+    expect(layer.blending).toBe('normal');
+    expect(layer).toHaveProperty('transform');
+    expect(layer.transform).toEqual({ scale: 1.0, rotation: 0 });
+    // Resolution effectiveSize
+    expect(layer.resolution).toHaveProperty('effectiveSize');
+    expect(layer.resolution.effectiveSize).toEqual({ width: width * layer.resolution.scale, height: height * layer.resolution.scale });
     // Palette defaults
     expect(Array.isArray(project.palette)).toBe(true);
     expect(project.palette.length).toBe(4);
@@ -30,6 +39,13 @@ describe('createEmptyProject', () => {
       expect(entry).toHaveProperty('name');
       expect(entry).toHaveProperty('hex');
       expect(entry).toHaveProperty('locked');
+      // Auto-derived color space fields
+      expect(Array.isArray(entry.rgb)).toBe(true);
+      expect(entry.rgb).toHaveLength(4);
+      expect(Array.isArray(entry.hsv)).toBe(true);
+      expect(entry.hsv).toHaveLength(4);
+      expect(Array.isArray(entry.lab)).toBe(true);
+      expect(entry.lab).toHaveLength(4);
     });
     // Metadata timestamps
     expect(new Date(project.metadata.created).toString()).not.toBe('Invalid Date');
