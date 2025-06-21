@@ -14,9 +14,54 @@
     #layers ul li input[type="range"] { margin: 0 8px; width: 80px; }
     #layers ul li button { margin-left: 8px; }
   </style>
+  <!-- GIF.js library for animated GIF export -->
+  <script src="https://cdn.jsdelivr.net/npm/gif.js/dist/gif.js"></script>
 </head>
 <body>
   <h1>MRPAF Editor MVP</h1>
+  <!-- Project Metadata -->
+  <div id="metadata-panel" style="margin-top:10px; border:1px solid #ccc; padding:8px;">
+    <h2>Project Metadata</h2>
+    <label>Title: <input type="text" id="meta-title" style="width:200px;" /></label>
+    <label style="margin-left:16px;">Author: <input type="text" id="meta-author" style="width:150px;" /></label>
+    <div style="margin-top:8px;">
+      <label>Description:<br/><textarea id="meta-description" rows="2" style="width:100%;"></textarea></label>
+    </div>
+    <div style="margin-top:8px;">
+      <label>Tags: <input type="text" id="meta-tags" placeholder="tag1,tag2" style="width:100%;" /></label>
+    </div>
+    <div style="margin-top:8px;">
+      <label>License: <input type="text" id="meta-license" style="width:200px;" /></label>
+    </div>
+    <!-- Extended Metadata: Work, Tool, Compatibility -->
+    <div style="margin-top:8px;">
+      <h3>Work</h3>
+      <label>Series: <input type="text" id="meta-work-series" style="width:150px;" /></label>
+      <label style="margin-left:16px;">Character: <input type="text" id="meta-work-character" style="width:150px;" /></label>
+      <div style="margin-top:4px;">
+        <label>Scene: <input type="text" id="meta-work-scene" style="width:150px;" /></label>
+        <label style="margin-left:16px;">Variation: <input type="text" id="meta-work-variation" style="width:150px;" /></label>
+      </div>
+    </div>
+    <div style="margin-top:8px;">
+      <h3>Tool</h3>
+      <label>Name: <input type="text" id="meta-tool-name" style="width:150px;" /></label>
+      <label style="margin-left:16px;">Version: <input type="text" id="meta-tool-version" style="width:80px;" /></label>
+      <label style="margin-left:16px;">Exporter: <input type="text" id="meta-tool-exporter" style="width:150px;" /></label>
+    </div>
+    <div style="margin-top:8px;">
+      <h3>Compatibility</h3>
+      <label>Min Version: <input type="text" id="meta-compat-min-version" style="width:80px;" /></label>
+      <label style="margin-left:16px;">Features: <input type="text" id="meta-compat-features" placeholder="feat1,feat2" style="width:200px;" /></label>
+    </div>
+  </div>
+  <!-- Canvas & Display Settings -->
+  <div id="canvas-settings-panel" style="margin-top:10px; border:1px solid #ccc; padding:8px;">
+    <h2>Canvas Settings</h2>
+    <label>Pixel Unit: <input type="number" id="canvas-pixel-unit" step="0.1" value="1.0" style="width:60px;" /></label>
+    <label style="margin-left:16px;">Aspect Ratio: <input type="number" id="canvas-aspect-ratio" step="0.1" value="1.0" style="width:60px;" /></label>
+    <label style="margin-left:16px;">Background Color: <input type="color" id="canvas-bg-color" value="#ffffff" style="vertical-align:middle;" /></label>
+  </div>
   <!-- Resolution controls -->
   <div id="resolution-controls" style="margin-top:10px;">
     <label for="canvas-width">Width:</label>
@@ -24,6 +69,44 @@
     <label for="canvas-height">Height:</label>
     <input type="number" id="canvas-height" min="1" value="16" style="width:60px; margin-right:8px;" />
     <button id="set-resolution">Set Resolution</button>
+  </div>
+  <!-- Coordinate System Settings -->
+  <div id="coord-settings-panel" style="margin-top:10px; border:1px solid #ccc; padding:8px;">
+    <h2>Coordinate System</h2>
+    <label>Origin: <select id="coord-origin"><option value="top-left">top-left</option><option value="bottom-left">bottom-left</option><option value="center">center</option></select></label>
+    <label style="margin-left:16px;">X Axis: <select id="coord-x-axis"><option value="right">right</option><option value="left">left</option></select></label>
+    <label style="margin-left:16px;">Y Axis: <select id="coord-y-axis"><option value="down">down</option><option value="up">up</option></select></label>
+    <div style="margin-top:8px;">
+      <label>Unit: <select id="coord-unit"><option value="pixel">pixel</option><option value="subpixel">subpixel</option></select></label>
+      <label style="margin-left:16px;">Base Unit: <input type="number" id="coord-base-unit" step="0.1" value="1.0" style="width:60px;" /></label>
+      <label style="margin-left:16px;">Precision: <input type="number" id="coord-precision" min="0" step="1" value="4" style="width:60px;" /></label>
+      <label style="margin-left:16px;">Allow Float: <input type="checkbox" id="coord-allow-float" /></label>
+    </div>
+  </div>
+  <!-- Color Space Settings -->
+  <div id="color-space-panel" style="margin-top:10px; border:1px solid #ccc; padding:8px;">
+    <h2>Color Space</h2>
+    <label>Profile: <select id="cs-profile"><option value="sRGB">sRGB</option><option value="AdobeRGB">Adobe RGB</option></select></label>
+    <label style="margin-left:16px;">Bit Depth: <input type="number" id="cs-bitdepth" step="1" value="8" style="width:60px;" /></label>
+    <label style="margin-left:16px;">Gamma: <input type="number" id="cs-gamma" step="0.1" value="2.2" style="width:60px;" /></label>
+    <label style="margin-left:16px;">White Point: <select id="cs-whitepoint"><option value="D65">D65</option><option value="D50">D50</option></select></label>
+  </div>
+  <!-- Compression Profile Settings -->
+  <div id="compression-profile-panel" style="margin-top:10px; border:1px solid #ccc; padding:8px;">
+    <h2>Compression Profile</h2>
+    <label>Name: <input type="text" id="cp-name" value="balanced" style="width:120px;" /></label>
+    <label style="margin-left:16px;">Auto Select: <input type="checkbox" id="cp-auto" checked /></label>
+    <label style="margin-left:16px;">Quality: <input type="number" id="cp-quality" step="0.01" min="0" max="1" value="0.95" style="width:60px;" /></label>
+  </div>
+  <!-- Animation timeline controls -->
+  <div id="timeline-controls" style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+    <button id="prev-frame">Prev Frame</button>
+    <span id="frame-indicator">Frame 1/1</span>
+    <button id="next-frame">Next Frame</button>
+    <button id="add-frame">+ Frame</button>
+    <button id="remove-frame">- Frame</button>
+    <button id="play">Play</button>
+    <label>FPS: <input type="number" id="fps-input" min="1" max="60" value="2" style="width:50px;" /></label>
   </div>
   <canvas id="canvas" width="512" height="512"></canvas>
   <!-- Color palette selector and editor -->
@@ -36,13 +119,32 @@
   <div id="layers">
     <button id="add-layer">Add Layer</button>
     <button id="remove-layer">Remove Layer</button>
+    <button id="add-background">Add Background Image</button>
+    <div id="background-controls" style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+      <label><input type="checkbox" id="background-visible" checked /> Show Background</label>
+      <label>Opacity: <input type="range" id="background-opacity" min="0" max="1" step="0.1" value="1" /></label>
+    </div>
     <ul id="layer-list" style="list-style:none; padding-left:0;"></ul>
   </div>
   <div id="tools">
     <button id="pen">Pen</button>
     <label for="brush-size" style="margin-left:8px;">Brush Size:</label>
     <input type="number" id="brush-size" min="1" max="50" value="1" style="width:50px; margin-left:4px;" />
+    <label for="brush-shape" style="margin-left:8px;">Brush Shape:</label>
+    <select id="brush-shape" style="margin-left:4px;">
+      <option value="square">Square</option>
+      <option value="circle">Circle</option>
+      <option value="cross">Cross</option>
+    </select>
     <button id="line">Line</button>
+    <!-- Symmetry mode -->
+    <label for="symmetry-mode" style="margin-left:8px;">Symmetry:</label>
+    <select id="symmetry-mode" style="margin-left:4px;">
+      <option value="none">None</option>
+      <option value="vertical">Vertical</option>
+      <option value="horizontal">Horizontal</option>
+      <option value="both">Both</option>
+    </select>
     <button id="eraser">Eraser</button>
     <button id="clear">Clear</button>
     <button id="save-local">Save</button>
@@ -51,13 +153,20 @@
     <button id="bucket">Bucket Fill</button>
     <button id="undo">Undo</button>
     <button id="redo">Redo</button>
+    <!-- Onion Skin controls -->
+    <label style="margin-left:8px;"><input type="checkbox" id="onion-enable" /> Onion Skin</label>
+    <label style="margin-left:4px;">Opacity: <input type="range" id="onion-opacity" min="0" max="1" step="0.1" value="0.5" style="vertical-align:middle;" /></label>
     <button id="zoom-in">Zoom In</button>
     <button id="zoom-out">Zoom Out</button>
     <button id="reset-zoom">Reset View</button>
     <button id="pan">Pan</button>
     <button id="export">Export JSON</button>
+    <button id="export-image">Export PNG</button>
+    <button id="export-spritesheet">Export SpriteSheet</button>
+    <button id="export-gif">Export GIF</button>
     <button id="import">Import JSON</button>
-    <input type="file" id="import-file" accept="application/json" style="display:none" />
+    <!-- Accept .mrpaf or .json files for MRPAF projects -->
+    <input type="file" id="import-file" accept=".mrpaf,application/json" style="display:none" />
   </div>
   <script type="module" src="./main.js"></script>
 </body>

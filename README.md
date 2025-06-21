@@ -73,9 +73,54 @@
  - [x] Palette editor (add/remove, rename)
 - [x] Brush size control
 - [x] Configurable canvas resolution
- - [x] Line drawing tool
+  - [x] Line drawing tool
+  - [x] Background image layer support
 
- **Remaining features to implement:**
-- None
- 
- *Generated and maintained by the AI agent during development to ensure context continuity.*
+**Remaining MRPAF v2.0.1 compliance features**
+The following areas are not yet fully implemented. Each should be developed in its own `feature/mrpaf-XXX` branch.
+
+- Layers
+  - [ ] Support layer hierarchy (parent), blending modes, and transform properties
+  - [ ] Placement: anchor presets and allowSubPixel offsets
+  - [ ] Resolution: compute and store `resolution.effectiveSize`
+- Pixel data encoding
+  - [ ] Support `raw`, `rle`, and `sparse` encodings
+  - [ ] Implement `pixels.defaultValue` and `pixels.compression` fields
+- Animations
+  - [ ] Top-level `animations` object (fps, loops, pingPong, interpolation)
+  - [ ] Detailed frame data: duration, overrides, tweens, events, tags, priority, blendMode
+  - [ ] `animationController` (defaultAnimation, transitions, tagGroups)
+- Resources management
+  - [ ] `resources` section for sounds, images, scripts and a UI panel
+- JSON import/export
+  - [ ] Validate against the MRPAF JSON Schema on import/export
+- UI enhancements
+  - [ ] Resource editor panel
+  - [ ] Advanced animations editor and timeline (per-frame editing)
+  - [ ] Advanced layer properties panel (blending modes, transforms)
+
+*Generated and maintained by the AI agent during development to ensure context continuity.*
+  
+## Infrastructure & Refactoring Roadmap
+以下のインフラ改善とアーキテクチャ整備は、各機能実装のタイミングを見ながら段階的に導入します。
+
+- テスト自動化 & CI
+  - [ ] `packages/core` に対するユニットテスト基盤 (Jest/Vitest) の構築
+  - [ ] GitHub Actions 等でのテスト自動実行パイプライン設定
+  - *タイミング*: 最優先。コア機能の安定化後、他パッケージへ展開*
+- 型安全化 (TypeScript)
+  - [ ] `packages/core` の TypeScript 移行
+  - [ ] `packages/renderer`・`packages/editor` の段階的 TS 化
+  - *タイミング*: コアテスト整備完了後、型付与によりバグを早期検出*
+- クリーンアーキテクチャ適用
+  - [ ] ユースケース／エンティティ層とインターフェイス層の分離
+  - [ ] 依存方向を UI → Core に固定
+  - *タイミング*: 型安全化完了後、新規大規模機能（リソース管理パネル等）実装前*
+- 部分的 React 移行
+  - [ ] リソースパネル、アニメーションタイムラインなど複雑 UI の React コンポーネント化
+  - [ ] Context API or Redux Toolkit による `project` 状態の一元管理
+  - *タイミング*: クリーンアーキテクチャ適用後、特定パーツ開発の際に順次導入*
+  
+### テスト実行
+1. ルートディレクトリで `npm install` を実行
+2. `npm test` でユニットテストを実行し、コア機能の検証を行います
