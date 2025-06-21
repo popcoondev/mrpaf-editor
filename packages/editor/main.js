@@ -754,6 +754,41 @@ function renderLayers() {
         renderCanvas();
       });
       li.appendChild(subPixelCheckbox);
+      // --- Pixel encoding selector ---
+      const encSelect = document.createElement('select');
+      ['raw','rle','sparse'].forEach(enc => {
+        const o = document.createElement('option');
+        o.value = enc;
+        o.textContent = enc;
+        if ((layer.pixels.encoding || 'raw') === enc) o.selected = true;
+        encSelect.appendChild(o);
+      });
+      encSelect.title = 'Pixel encoding';
+      encSelect.style.marginLeft = '8px';
+      encSelect.addEventListener('change', () => {
+        pushHistory();
+        layer.pixels.encoding = encSelect.value;
+        project.metadata.modified = new Date().toISOString();
+        renderCanvas();
+      });
+      li.appendChild(encSelect);
+      // --- Pixel compression selector ---
+      const compSelect = document.createElement('select');
+      ['none','auto'].forEach(comp => {
+        const o = document.createElement('option');
+        o.value = comp;
+        o.textContent = comp;
+        if ((layer.pixels.compression || 'none') === comp) o.selected = true;
+        compSelect.appendChild(o);
+      });
+      compSelect.title = 'Pixel compression';
+      compSelect.style.marginLeft = '4px';
+      compSelect.addEventListener('change', () => {
+        pushHistory();
+        layer.pixels.compression = compSelect.value;
+        project.metadata.modified = new Date().toISOString();
+      });
+      li.appendChild(compSelect);
     })();
     layerList.appendChild(li);
   });
@@ -955,6 +990,129 @@ if (interpSelect) {
     project.metadata.modified = new Date().toISOString();
   });
 }
+// --- Frame tags editor setup ---
+const frameTagInput = document.getElementById('frame-tag-input');
+const addFrameTagBtn = document.getElementById('add-frame-tag');
+const removeFrameTagBtn = document.getElementById('remove-frame-tag');
+const frameTagList = document.getElementById('frame-tag-list');
+let currentFrameTagIndex = -1;
+/** Render the list of tags for the current frame */
+function renderFrameTags() {
+  const tags = project.frames[currentFrameIndex]?.tags || [];
+  frameTagList.innerHTML = '';
+  tags.forEach((tag, idx) => {
+    const li = document.createElement('li');
+    li.textContent = tag;
+    li.style.cursor = 'pointer';
+    li.style.padding = '2px 4px';
+    li.style.border = idx === currentFrameTagIndex ? '1px solid #000' : '1px solid #ccc';
+    li.addEventListener('click', () => {
+      currentFrameTagIndex = idx;
+      renderFrameTags();
+    });
+    frameTagList.appendChild(li);
+  });
+  // Reset selection if out of range
+  if (currentFrameTagIndex >= tags.length) currentFrameTagIndex = -1;
+}
+// Bind add/remove
+if (addFrameTagBtn) {
+  addFrameTagBtn.addEventListener('click', () => {
+    const val = frameTagInput.value.trim();
+    if (!val) return;
+    pushHistory();
+    const frame = project.frames[currentFrameIndex];
+    frame.tags = Array.isArray(frame.tags) ? frame.tags : [];
+    if (!frame.tags.includes(val)) frame.tags.push(val);
+    project.metadata.modified = new Date().toISOString();
+    frameTagInput.value = '';
+    currentFrameTagIndex = tags.length - 1;
+    renderFrameTags();
+  });
+}
+if (removeFrameTagBtn) {
+  removeFrameTagBtn.addEventListener('click', () => {
+    const frame = project.frames[currentFrameIndex];
+    frame.tags = Array.isArray(frame.tags) ? frame.tags : [];
+    if (currentFrameTagIndex < 0 || currentFrameTagIndex >= frame.tags.length) return;
+    pushHistory();
+    frame.tags.splice(currentFrameTagIndex, 1);
+    project.metadata.modified = new Date().toISOString();
+    currentFrameTagIndex = -1;
+    renderFrameTags();
+  });
+}
+// Hook into frame change to refresh tags and events UI
+const origSetFrame = setFrame;
+setFrame = function(idx) {
+  origSetFrame(idx);
+  // Ensure tags/events arrays exist on the frame
+  const frame = project.frames[currentFrameIndex];
+  if (!Array.isArray(frame.tags)) frame.tags = [];
+  if (!Array.isArray(frame.events)) frame.events = [];
+  renderFrameTags();
+  renderFrameEvents();
+};
+// Initial render of tags
+renderFrameTags();
+// Frame events editor setup
+const frameEventInput = document.getElementById('frame-event-input');
+const addFrameEventBtn = document.getElementById('add-frame-event');
+const removeFrameEventBtn = document.getElementById('remove-frame-event');
+const frameEventList = document.getElementById('frame-event-list');
+let currentFrameEventIndex = -1;
+/** Render list of events for current frame */
+function renderFrameEvents() {
+  const events = project.frames[currentFrameIndex]?.events || [];
+  frameEventList.innerHTML = '';
+  events.forEach((ev, idx) => {
+    const li = document.createElement('li');
+    li.textContent = ev;
+    li.style.cursor = 'pointer';
+    li.style.padding = '2px 4px';
+    li.style.border = idx === currentFrameEventIndex ? '1px solid #000' : '1px solid #ccc';
+    li.addEventListener('click', () => {
+      currentFrameEventIndex = idx;
+      renderFrameEvents();
+    });
+    frameEventList.appendChild(li);
+  });
+  if (currentFrameEventIndex >= events.length) currentFrameEventIndex = -1;
+}
+if (addFrameEventBtn) {
+  addFrameEventBtn.addEventListener('click', () => {
+    const val = frameEventInput.value.trim();
+    if (!val) return;
+    pushHistory();
+    const frame = project.frames[currentFrameIndex];
+    frame.events = Array.isArray(frame.events) ? frame.events : [];
+    if (!frame.events.includes(val)) frame.events.push(val);
+    project.metadata.modified = new Date().toISOString();
+    frameEventInput.value = '';
+    currentFrameEventIndex = events.length - 1;
+    renderFrameEvents();
+  });
+}
+if (removeFrameEventBtn) {
+  removeFrameEventBtn.addEventListener('click', () => {
+    const frame = project.frames[currentFrameIndex];
+    frame.events = Array.isArray(frame.events) ? frame.events : [];
+    if (currentFrameEventIndex < 0 || currentFrameEventIndex >= frame.events.length) return;
+    pushHistory();
+    frame.events.splice(currentFrameEventIndex, 1);
+    project.metadata.modified = new Date().toISOString();
+    currentFrameEventIndex = -1;
+    renderFrameEvents();
+  });
+}
+// Hook into setFrame for events UI
+const origSetFrameEvents = setFrame;
+setFrame = function(idx) {
+  origSetFrameEvents(idx);
+  renderFrameEvents();
+};
+// Initial render of frame events
+renderFrameEvents();
 // Play / stop animation preview
 let isPlaying = false;
 let playTimer = null;
