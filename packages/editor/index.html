@@ -99,7 +99,7 @@
     <label style="margin-left:16px;">Quality: <input type="number" id="cp-quality" step="0.01" min="0" max="1" value="0.95" style="width:60px;" /></label>
   </div>
   <!-- Animation timeline controls -->
-  <div id="timeline-controls" style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+  <div id="timeline-controls" style="margin-top:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
     <button id="prev-frame">Prev Frame</button>
     <span id="frame-indicator">Frame 1/1</span>
     <button id="next-frame">Next Frame</button>
@@ -107,7 +107,16 @@
     <button id="remove-frame">- Frame</button>
     <button id="play">Play</button>
     <label>FPS: <input type="number" id="fps-input" min="1" max="60" value="2" style="width:50px;" /></label>
-    <label style="margin-left:8px;">Frame Duration: <input type="number" id="frame-duration" min="0.01" step="0.01" value="0.1" style="width:60px;" /></label>
+    <!-- Frame tags editor -->
+    <label style="margin-left:8px;">Tag: <input type="text" id="frame-tag-input" style="width:100px;" /></label>
+    <button id="add-frame-tag">Add Tag</button>
+    <button id="remove-frame-tag">Remove Tag</button>
+    <ul id="frame-tag-list" style="list-style:none; display:flex; gap:4px; margin:0 0 0 8px; padding:0;"></ul>
+    <!-- Frame events editor -->
+    <label style="margin-left:8px;">Event: <input type="text" id="frame-event-input" style="width:100px;" /></label>
+    <button id="add-frame-event">Add Event</button>
+    <button id="remove-frame-event">Remove Event</button>
+    <ul id="frame-event-list" style="list-style:none; display:flex; gap:4px; margin:0 0 0 8px; padding:0;"></ul>
     <label style="margin-left:8px;"><input type="checkbox" id="loop-check" /> Loops</label>
     <label style="margin-left:4px;"><input type="checkbox" id="pingpong-check" /> PingPong</label>
     <label style="margin-left:4px;">Interpolation: <select id="interp-select">
