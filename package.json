@@ -1,0 +1,12 @@
+{
+  "name": "mrpaf-pixel-art-editor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules test-runner.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

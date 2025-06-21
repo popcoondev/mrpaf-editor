@@ -1,69 +1,5 @@
-import { createEmptyProject } from '../core/index.js';
+import { createEmptyProject, updateColorSpaces } from '../core/index.js';
 import { drawProject } from '../renderer/index.js';
-// --- Color space derivation helpers ---
-/** Convert hex string to RGBA components [0-255] */
-function hexToRgba(hex) {
-  let h = hex.replace(/^#/, '');
-  let r=0,g=0,b=0,a=255;
-  if (h.length === 8) {
-    r = parseInt(h.slice(0,2),16);
-    g = parseInt(h.slice(2,4),16);
-    b = parseInt(h.slice(4,6),16);
-    a = parseInt(h.slice(6,8),16);
-  } else if (h.length === 6) {
-    r = parseInt(h.slice(0,2),16);
-    g = parseInt(h.slice(2,4),16);
-    b = parseInt(h.slice(4,6),16);
-    a = 255;
-  }
-  return { r, g, b, a };
-}
-/** Convert RGB to HSV [h (0-360), s (0-1), v (0-1)] */
-function rgbToHsv(r, g, b) {
-  const _r = r/255, _g = g/255, _b = b/255;
-  const max = Math.max(_r, _g, _b), min = Math.min(_r, _g, _b);
-  const d = max - min;
-  let h = 0;
-  if (d) {
-    if (max === _r) h = (( _g - _b ) / d) % 6;
-    else if (max === _g) h = ( (_b - _r) / d) + 2;
-    else h = ( (_r - _g) / d) + 4;
-    h = Math.round(h * 60);
-    if (h < 0) h += 360;
-  }
-  const s = max ? d / max : 0;
-  const v = max;
-  return [h, s, v];
-}
-/** Convert RGB to CIE XYZ (D65) */
-function rgbToXyz(r, g, b) {
-  const toLin = c => c > 0.04045 ? Math.pow((c + 0.055)/1.055, 2.4) : c/12.92;
-  const _r = toLin(r/255), _g = toLin(g/255), _b = toLin(b/255);
-  // sRGB D65
-  const x = _r*0.4124 + _g*0.3576 + _b*0.1805;
-  const y = _r*0.2126 + _g*0.7152 + _b*0.0722;
-  const z = _r*0.0193 + _g*0.1192 + _b*0.9505;
-  return [x, y, z];
-}
-/** Convert CIE XYZ to CIE Lab */
-function xyzToLab(x, y, z) {
-  const refX = 0.95047, refY = 1.00000, refZ = 1.08883;
-  const f = t => t > 0.008856 ? Math.cbrt(t) : (7.787 * t + 16/116);
-  const fx = f(x / refX), fy = f(y / refY), fz = f(z / refZ);
-  const L = 116 * fy - 16;
-  const a = 500 * (fx - fy);
-  const b = 200 * (fy - fz);
-  return [L, a, b];
-}
-/** Update entry with derived rgb, hsv, lab arrays */
-function updateColorSpaces(entry) {
-  const { r, g, b, a } = hexToRgba(entry.hex);
-  entry.rgb = [r, g, b, a];
-  const [h, s, v] = rgbToHsv(r, g, b);
-  entry.hsv = [h, s, v, a];
-  const [L, A, B] = xyzToLab(...rgbToXyz(r, g, b));
-  entry.lab = [L, A, B, a];
-}
 // Background image layer handling
 const bgFileInput = document.createElement('input');
 bgFileInput.type = 'file';
@@ -106,6 +42,16 @@ const metaAuthor = document.getElementById('meta-author');
 const metaDescription = document.getElementById('meta-description');
 const metaTags = document.getElementById('meta-tags');
 const metaLicense = document.getElementById('meta-license');
+// Extended metadata inputs
+const metaWorkSeries = document.getElementById('meta-work-series');
+const metaWorkCharacter = document.getElementById('meta-work-character');
+const metaWorkScene = document.getElementById('meta-work-scene');
+const metaWorkVariation = document.getElementById('meta-work-variation');
+const metaToolName = document.getElementById('meta-tool-name');
+const metaToolVersion = document.getElementById('meta-tool-version');
+const metaToolExporter = document.getElementById('meta-tool-exporter');
+const metaCompatMinVersion = document.getElementById('meta-compat-min-version');
+const metaCompatFeatures = document.getElementById('meta-compat-features');
 /** Populate metadata inputs from the project object */
 function updateMetadataPanel() {
   metaTitle.value = project.metadata.title || '';
@@ -113,11 +59,22 @@ function updateMetadataPanel() {
   metaDescription.value = project.metadata.description || '';
   metaTags.value = (project.metadata.tags || []).join(',');
   metaLicense.value = project.metadata.license || '';
+  // Populate extended metadata fields
+  metaWorkSeries.value = (project.metadata.work && project.metadata.work.series) || '';
+  metaWorkCharacter.value = (project.metadata.work && project.metadata.work.character) || '';
+  metaWorkScene.value = (project.metadata.work && project.metadata.work.scene) || '';
+  metaWorkVariation.value = (project.metadata.work && project.metadata.work.variation) || '';
+  metaToolName.value = (project.metadata.tool && project.metadata.tool.name) || '';
+  metaToolVersion.value = (project.metadata.tool && project.metadata.tool.version) || '';
+  metaToolExporter.value = (project.metadata.tool && project.metadata.tool.exporter) || '';
+  metaCompatMinVersion.value = (project.metadata.compatibility && project.metadata.compatibility.minVersion) || '';
+  metaCompatFeatures.value = (project.metadata.compatibility && project.metadata.compatibility.features)
+    ? project.metadata.compatibility.features.join(',') : '';
 }
 // Initialize metadata panel
 updateMetadataPanel();
 // Update metadata on user input
-[metaTitle, metaAuthor, metaDescription, metaTags, metaLicense].forEach(input => {
+ [metaTitle, metaAuthor, metaDescription, metaTags, metaLicense].forEach(input => {
   input.addEventListener('input', () => {
     pushHistory();
     project.metadata.title = metaTitle.value;
@@ -127,6 +84,37 @@ updateMetadataPanel();
     project.metadata.license = metaLicense.value;
     project.metadata.modified = new Date().toISOString();
   });
+});
+// Extended metadata input handlers
+[metaWorkSeries, metaWorkCharacter, metaWorkScene, metaWorkVariation].forEach(input => {
+  input.addEventListener('input', () => {
+    pushHistory();
+    project.metadata.work.series = metaWorkSeries.value;
+    project.metadata.work.character = metaWorkCharacter.value;
+    project.metadata.work.scene = metaWorkScene.value;
+    project.metadata.work.variation = metaWorkVariation.value;
+    project.metadata.modified = new Date().toISOString();
+  });
+});
+[metaToolName, metaToolVersion, metaToolExporter].forEach(input => {
+  input.addEventListener('input', () => {
+    pushHistory();
+    project.metadata.tool.name = metaToolName.value;
+    project.metadata.tool.version = metaToolVersion.value;
+    project.metadata.tool.exporter = metaToolExporter.value;
+    project.metadata.modified = new Date().toISOString();
+  });
+});
+metaCompatMinVersion.addEventListener('input', () => {
+  pushHistory();
+  project.metadata.compatibility.minVersion = metaCompatMinVersion.value;
+  project.metadata.modified = new Date().toISOString();
+});
+metaCompatFeatures.addEventListener('input', () => {
+  pushHistory();
+  project.metadata.compatibility.features = metaCompatFeatures.value
+    .split(',').map(s => s.trim()).filter(s => s);
+  project.metadata.modified = new Date().toISOString();
 });
 // --- Canvas & Display Settings Setup ---
 const canvasPixelUnitInput = document.getElementById('canvas-pixel-unit');
