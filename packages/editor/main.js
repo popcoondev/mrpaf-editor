@@ -871,12 +871,18 @@ const playBtn = document.getElementById('play');
 const fpsInput = document.getElementById('fps-input');
 const frameIndicator = document.getElementById('frame-indicator');
 const durationInput = document.getElementById('frame-duration');
+const loopCheckbox = document.getElementById('loop-check');
+const pingpongCheckbox = document.getElementById('pingpong-check');
+const interpSelect = document.getElementById('interp-select');
 function updateFrameIndicator() {
   frameIndicator.textContent = `Frame ${currentFrameIndex+1}/${project.frames.length}`;
   if (durationInput) {
     const dur = project.frames[currentFrameIndex]?.duration;
     durationInput.value = typeof dur === 'number' ? dur : '';
   }
+  if (loopCheckbox) loopCheckbox.checked = !!project.animations.loops;
+  if (pingpongCheckbox) pingpongCheckbox.checked = !!project.animations.pingPong;
+  if (interpSelect) interpSelect.value = project.animations.interpolation || 'none';
 }
 function setFrame(idx) {
   // Save current state
@@ -930,19 +936,39 @@ if (durationInput) {
     project.metadata.modified = new Date().toISOString();
   });
 }
+// Animation settings handlers
+if (loopCheckbox) {
+  loopCheckbox.addEventListener('change', () => {
+    pushHistory(); project.animations.loops = loopCheckbox.checked;
+    project.metadata.modified = new Date().toISOString();
+  });
+}
+if (pingpongCheckbox) {
+  pingpongCheckbox.addEventListener('change', () => {
+    pushHistory(); project.animations.pingPong = pingpongCheckbox.checked;
+    project.metadata.modified = new Date().toISOString();
+  });
+}
+if (interpSelect) {
+  interpSelect.addEventListener('change', () => {
+    pushHistory(); project.animations.interpolation = interpSelect.value;
+    project.metadata.modified = new Date().toISOString();
+  });
+}
 // Play / stop animation preview
 let isPlaying = false;
 let playTimer = null;
 playBtn.addEventListener('click', () => {
   if (!isPlaying) {
     // Start playback
-    const fps = Math.max(1, parseInt(fpsInput.value, 10) || 1);
+    const fpsVal = Math.max(1, parseInt(fpsInput.value, 10) || project.animations.fps);
+    pushHistory(); project.animations.fps = fpsVal; project.metadata.modified = new Date().toISOString();
     playBtn.textContent = 'Stop';
     isPlaying = true;
     playTimer = setInterval(() => {
       const next = (currentFrameIndex + 1) % project.frames.length;
       setFrame(next);
-    }, 1000 / fps);
+    }, 1000 / fpsVal);
   } else {
     // Stop playback
     clearInterval(playTimer);
@@ -1118,8 +1144,17 @@ importFileInput.addEventListener('change', (e) => {
     reader.onload = () => {
       try {
         const imported = JSON.parse(reader.result);
-        if (!imported.canvas || !imported.layers) {
-          alert('Invalid MRPAF JSON.');
+        // Minimal MRPAF JSON validation
+        if (!imported || imported.format !== 'MRPAF' || !imported.version || !imported.$schema) {
+          alert('Invalid MRPAF JSON: missing format/version/schema');
+          return;
+        }
+        if (!imported.canvas || typeof imported.canvas.baseWidth !== 'number' || typeof imported.canvas.baseHeight !== 'number') {
+          alert('Invalid MRPAF JSON: missing canvas settings');
+          return;
+        }
+        if (!Array.isArray(imported.layers)) {
+          alert('Invalid MRPAF JSON: missing layers');
           return;
         }
         project = imported;
