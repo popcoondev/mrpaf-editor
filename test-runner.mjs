@@ -22,6 +22,77 @@ async function runCoreTests() {
   console.log('Core tests passed.');
 }
 
+async function runColorTests() {
+  console.log('Running color space tests...');
+  // Test hexToRgba
+  const { hexToRgba, rgbToHsv, rgbToXyz, xyzToLab, updateColorSpaces } = await import('./packages/core/index.js');
+  let c = hexToRgba('#11223344');
+  assert.strictEqual(c.r, 0x11, 'hexToRgba.r mismatch');
+  assert.strictEqual(c.g, 0x22, 'hexToRgba.g mismatch');
+  assert.strictEqual(c.b, 0x33, 'hexToRgba.b mismatch');
+  assert.strictEqual(c.a, 0x44, 'hexToRgba.a mismatch');
+  c = hexToRgba('#AA5500');
+  assert.strictEqual(c.r, 0xAA, 'hexToRgba.r mismatch');
+  assert.strictEqual(c.g, 0x55, 'hexToRgba.g mismatch');
+  assert.strictEqual(c.b, 0x00, 'hexToRgba.b mismatch');
+  assert.strictEqual(c.a, 0xFF, 'hexToRgba.a default alpha');
+  // Test rgbToHsv
+  let [h,s,v] = rgbToHsv(255,0,0);
+  assert.strictEqual(h,0,'rgbToHsv red hue');
+  assert.ok(Math.abs(s-1) < 1e-6,'rgbToHsv red saturation');
+  assert.ok(Math.abs(v-1) < 1e-6,'rgbToHsv red value');
+  // Test round-trip XYZ->Lab
+  const [x,y,z] = rgbToXyz(128,128,128);
+  const [L,A,B] = xyzToLab(x,y,z);
+  assert.ok(Array.isArray([L,A,B]), 'xyzToLab output array');
+  // Test updateColorSpaces
+  const entry = { hex: '#00FF00' };
+  updateColorSpaces(entry);
+  assert.ok(Array.isArray(entry.rgb) && entry.rgb.length===4,'updateColorSpaces.rgb');
+  assert.ok(Array.isArray(entry.hsv) && entry.hsv.length===4,'updateColorSpaces.hsv');
+  assert.ok(Array.isArray(entry.lab) && entry.lab.length===4,'updateColorSpaces.lab');
+  console.log('Color space tests passed.');
+}
+/**
+ * Run pixel encoding/decoding tests.
+ */
+async function runEncodingTests() {
+  console.log('Running pixel encoding tests...');
+  const core = await import('./packages/core/index.js');
+  // Raw
+  const arr = [1,2,2,3,3,3];
+  let rawEnc = core.encodeRaw(arr);
+  let rawDec = core.decodeRaw(rawEnc);
+  assert.deepStrictEqual(rawDec, arr, 'Raw encode/decode should preserve data');
+  // RLE
+  const rleEnc = core.encodeRle(arr);
+  assert.strictEqual(rleEnc.format, 'rle', 'encodeRle.format');
+  const rleDec = core.decodeRle(rleEnc);
+  assert.deepStrictEqual(rleDec, arr, 'RLE decode should reconstruct original');
+  // Sparse
+  const sparseArr = [null, 5, null, 0, null];
+  const sparseEnc = core.encodeSparse(sparseArr, null);
+  assert.strictEqual(sparseEnc.format, 'sparse', 'encodeSparse.format');
+  const sparseDec = core.decodeSparse(sparseEnc, sparseArr.length);
+  assert.deepStrictEqual(sparseDec, sparseArr, 'Sparse decode should reconstruct original');
+  console.log('Pixel encoding tests passed.');
+}
+/**
+ * Run basic animations configuration tests.
+ */
+async function runAnimationTests() {
+  console.log('Running animations tests...');
+  const { createEmptyProject } = await import('./packages/core/index.js');
+  const project = createEmptyProject();
+  assert.ok(project.animations, 'animations property exists');
+  const a = project.animations;
+  assert.strictEqual(a.fps, 24, 'default fps');
+  assert.strictEqual(a.loops, true, 'default loops');
+  assert.strictEqual(a.pingPong, false, 'default pingPong');
+  assert.strictEqual(a.interpolation, 'none', 'default interpolation');
+  console.log('Animations tests passed.');
+}
+
 async function runRendererTests() {
   console.log('Running renderer tests...');
   // Create empty project, expect no draw calls
@@ -57,6 +128,9 @@ async function runRendererTests() {
 async function main() {
   try {
     await runCoreTests();
+    await runColorTests();
+    await runEncodingTests();
+    await runAnimationTests();
     await runRendererTests();
     console.log('All tests passed.');
     process.exit(0);
