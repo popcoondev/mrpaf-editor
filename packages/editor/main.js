@@ -1027,7 +1027,8 @@ if (addFrameTagBtn) {
     if (!frame.tags.includes(val)) frame.tags.push(val);
     project.metadata.modified = new Date().toISOString();
     frameTagInput.value = '';
-    currentFrameTagIndex = tags.length - 1;
+    // Select the newly added tag
+    currentFrameTagIndex = frame.tags.length - 1;
     renderFrameTags();
   });
 }
@@ -1091,7 +1092,8 @@ if (addFrameEventBtn) {
     if (!frame.events.includes(val)) frame.events.push(val);
     project.metadata.modified = new Date().toISOString();
     frameEventInput.value = '';
-    currentFrameEventIndex = events.length - 1;
+    // Select the newly added event
+    currentFrameEventIndex = frame.events.length - 1;
     renderFrameEvents();
   });
 }
