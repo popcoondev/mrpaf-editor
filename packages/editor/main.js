@@ -573,6 +573,51 @@ function renderLayers() {
       }
     });
     li.appendChild(downBtn);
+    // --- Layer blending mode selector ---
+    const blendSelect = document.createElement('select');
+    ['normal','multiply','screen','overlay','darken','lighten','hard-light','soft-light','color-dodge','color-burn'].forEach(mode => {
+      const opt = document.createElement('option');
+      opt.value = mode;
+      opt.textContent = mode;
+      if (layer.blending === mode) opt.selected = true;
+      blendSelect.appendChild(opt);
+    });
+    blendSelect.title = 'Blending mode';
+    blendSelect.style.marginLeft = '8px';
+    blendSelect.addEventListener('change', () => {
+      pushHistory();
+      layer.blending = blendSelect.value;
+      project.metadata.modified = new Date().toISOString();
+      renderCanvas();
+    });
+    li.appendChild(blendSelect);
+    // --- Layer transform controls: scale and rotation ---
+    const scaleInput = document.createElement('input');
+    scaleInput.type = 'number'; scaleInput.step = '0.1'; scaleInput.min = '0.1';
+    scaleInput.value = layer.transform?.scale || 1.0;
+    scaleInput.title = 'Transform scale';
+    scaleInput.style.width = '50px'; scaleInput.style.marginLeft = '8px';
+    scaleInput.addEventListener('change', () => {
+      pushHistory();
+      layer.transform = layer.transform || { scale: 1.0, rotation: 0 };
+      layer.transform.scale = parseFloat(scaleInput.value) || 1.0;
+      project.metadata.modified = new Date().toISOString();
+      renderCanvas();
+    });
+    li.appendChild(scaleInput);
+    const rotInput = document.createElement('input');
+    rotInput.type = 'number'; rotInput.step = '1'; rotInput.min = '0'; rotInput.max = '360';
+    rotInput.value = layer.transform?.rotation || 0;
+    rotInput.title = 'Transform rotation (deg)';
+    rotInput.style.width = '50px'; rotInput.style.marginLeft = '4px';
+    rotInput.addEventListener('change', () => {
+      pushHistory();
+      layer.transform = layer.transform || { scale: 1.0, rotation: 0 };
+      layer.transform.rotation = parseFloat(rotInput.value) || 0;
+      project.metadata.modified = new Date().toISOString();
+      renderCanvas();
+    });
+    li.appendChild(rotInput);
     // Append opacity slider after reorder
     opacityInput.translated = true; // Ensure it is translated properly
     li.appendChild(opacityInput);
