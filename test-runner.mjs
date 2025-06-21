@@ -90,7 +90,37 @@ async function runAnimationTests() {
   assert.strictEqual(a.loops, true, 'default loops');
   assert.strictEqual(a.pingPong, false, 'default pingPong');
   assert.strictEqual(a.interpolation, 'none', 'default interpolation');
+  // Frames
+  assert.ok(Array.isArray(project.frames), 'frames array exists');
+  assert.strictEqual(project.frames.length, 1, 'one default frame');
+  const frame = project.frames[0];
+  assert.strictEqual(frame.duration, 1 / project.animations.fps, 'frame duration matches fps');
+  assert.ok(Array.isArray(frame.layers), 'frame.layers is array');
+  assert.strictEqual(frame.backgroundImageData, null, 'frame.backgroundImageData default');
+  // Animation controller
+  const ac = project.animationController;
+  assert.strictEqual(ac.defaultAnimation, 0, 'defaultAnimation is 0');
+  assert.ok(Array.isArray(ac.transitions), 'transitions is array');
+  assert.strictEqual(ac.transitions.length, 0, 'no default transitions');
+  assert.ok(Array.isArray(ac.tagGroups), 'tagGroups is array');
+  assert.strictEqual(ac.tagGroups.length, 0, 'no default tagGroups');
   console.log('Animations tests passed.');
+}
+/**
+ * Run resources initialization tests.
+ */
+async function runResourcesTests() {
+  console.log('Running resources tests...');
+  const { createEmptyProject } = await import('./packages/core/index.js');
+  const project = createEmptyProject();
+  assert.ok(project.resources, 'resources property exists');
+  const res = project.resources;
+  ['images', 'sounds', 'scripts', 'fonts', 'shaders'].forEach(cat => {
+    assert.ok(cat in res, `resources.${cat} exists`);
+    assert.strictEqual(typeof res[cat], 'object', `resources.${cat} is object`);
+    assert.strictEqual(Object.keys(res[cat]).length, 0, `resources.${cat} empty by default`);
+  });
+  console.log('Resources tests passed.');
 }
 
 async function runRendererTests() {
@@ -131,6 +161,7 @@ async function main() {
     await runColorTests();
     await runEncodingTests();
     await runAnimationTests();
+    await runResourcesTests();
     await runRendererTests();
     console.log('All tests passed.');
     process.exit(0);

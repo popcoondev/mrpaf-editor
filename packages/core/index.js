@@ -198,7 +198,32 @@ export function createEmptyProject(width = 16, height = 16) {
       pingPong: false,
       interpolation: 'none'
     },
-    editorSettings: []
+    editorSettings: [],
+    // Resource management
+    resources: {
+      images: {},
+      sounds: {},
+      scripts: {},
+      fonts: {},
+      shaders: {}
+    }
+  };
+  // Initialize frames: each frame holds its own layers and optional background
+  project.frames = [
+    {
+      // Duration in seconds for this frame (1/fps default)
+      duration: 1 / project.animations.fps,
+      // Copy of base layer configuration
+      layers: JSON.parse(JSON.stringify(project.layers)),
+      // No background image by default
+      backgroundImageData: null
+    }
+  ];
+  // Default animation controller settings
+  project.animationController = {
+    defaultAnimation: 0,
+    transitions: [],
+    tagGroups: []
   };
   // Automatically derive color spaces for initial palette entries
   project.palette.forEach(entry => updateColorSpaces(entry));
