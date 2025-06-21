@@ -839,8 +839,13 @@ const removeFrameBtn = document.getElementById('remove-frame');
 const playBtn = document.getElementById('play');
 const fpsInput = document.getElementById('fps-input');
 const frameIndicator = document.getElementById('frame-indicator');
+const durationInput = document.getElementById('frame-duration');
 function updateFrameIndicator() {
   frameIndicator.textContent = `Frame ${currentFrameIndex+1}/${project.frames.length}`;
+  if (durationInput) {
+    const dur = project.frames[currentFrameIndex]?.duration;
+    durationInput.value = typeof dur === 'number' ? dur : '';
+  }
 }
 function setFrame(idx) {
   // Save current state
@@ -881,6 +886,19 @@ removeFrameBtn.addEventListener('click', () => {
   project.frames.splice(currentFrameIndex, 1);
   setFrame(Math.min(currentFrameIndex, project.frames.length - 1));
 });
+// Frame duration edit handler
+if (durationInput) {
+  durationInput.addEventListener('change', () => {
+    const val = parseFloat(durationInput.value);
+    if (isNaN(val) || val <= 0) {
+      durationInput.value = project.frames[currentFrameIndex].duration;
+      return;
+    }
+    pushHistory();
+    project.frames[currentFrameIndex].duration = val;
+    project.metadata.modified = new Date().toISOString();
+  });
+}
 // Play / stop animation preview
 let isPlaying = false;
 let playTimer = null;
