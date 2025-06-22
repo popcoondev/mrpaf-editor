@@ -418,6 +418,54 @@ function renderCanvas() {
     }
   });
 }
+
+/**
+ * Handle pen/eraser drawing at canvas-relative coordinates
+ * @param {number} canvasX x-coordinate relative to canvas
+ * @param {number} canvasY y-coordinate relative to canvas
+ */
+function handleBrush(canvasX, canvasY) {
+  const width = project.canvas.baseWidth;
+  const height = project.canvas.baseHeight;
+  // Map to world then to grid coords
+  const worldX = (canvasX - panX) / zoom;
+  const worldY = (canvasY - panY) / zoom;
+  const pixelSize = Math.floor(Math.min(canvas.width / width, canvas.height / height));
+  const gridX = worldX / pixelSize;
+  const gridY = worldY / pixelSize;
+  const layer = project.layers[currentLayerIndex];
+  if (!layer || !layer.pixels || !layer.pixels.data) return;
+  const res = layer.resolution || { pixelArraySize: { width, height }, scale: 1 };
+  const arr = res.pixelArraySize;
+  const scale = res.scale;
+  const offset = layer.placement || { x: 0, y: 0 };
+  const layerX = Math.floor((gridX - offset.x) / scale);
+  const layerY = Math.floor((gridY - offset.y) / scale);
+  const w = arr.width, h = arr.height;
+  if (layerX < 0 || layerY < 0 || layerX >= w || layerY >= h) return;
+  const data = layer.pixels.data;
+  const brushSize = parseInt(document.getElementById('brush-size').value, 10) || 1;
+  const half = Math.floor(brushSize / 2);
+  const doErase = (tool === 'eraser');
+  const value = doErase ? 0 : (currentColorIndex + 1);
+  for (let dy = -half; dy <= half; dy++) {
+    for (let dx = -half; dx <= half; dx++) {
+      if (brushShape === 'circle' && dx * dx + dy * dy > half * half) continue;
+      if (brushShape === 'cross' && dx !== 0 && dy !== 0) continue;
+      const xi = layerX + dx;
+      const yi = layerY + dy;
+      if (xi < 0 || yi < 0 || xi >= w || yi >= h) continue;
+      const points = [{ x: xi, y: yi }];
+      if (symmetryMode === 'vertical' || symmetryMode === 'both') points.push({ x: w - 1 - xi, y: yi });
+      if (symmetryMode === 'horizontal' || symmetryMode === 'both') points.push({ x: xi, y: h - 1 - yi });
+      if (symmetryMode === 'both') points.push({ x: w - 1 - xi, y: h - 1 - yi });
+      points.forEach(pt => {
+        data[pt.y * w + pt.x] = value;
+      });
+    }
+  }
+  renderCanvas();
+}
 // Render color palette UI
 const paletteContainer = document.getElementById('palette');
 // Hidden color input for palette editing
@@ -1622,26 +1670,43 @@ document.getElementById('load-local').addEventListener('click', () => {
 });
 
 
-// Pan event handlers
+// Drawing (pen/eraser) and pan event handlers
+let isDrawing = false;
 canvas.addEventListener('mousedown', (e) => {
-  if (tool === 'pan' && e.button === 0) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  if ((tool === 'pen' || tool === 'eraser') && e.button === 0) {
+    // Start drawing
+    isDrawing = true;
+    pushHistory();
+    handleBrush(x, y);
+  } else if (tool === 'pan' && e.button === 0) {
     isPanning = true;
     panStart = { x: e.clientX, y: e.clientY };
     panOffsetStart = { x: panX, y: panY };
   }
 });
 canvas.addEventListener('mousemove', (e) => {
-  if (isPanning) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  if (isDrawing) {
+    handleBrush(x, y);
+  } else if (isPanning) {
     panX = panOffsetStart.x + (e.clientX - panStart.x);
     panY = panOffsetStart.y + (e.clientY - panStart.y);
     renderCanvas();
   }
 });
 canvas.addEventListener('mouseup', () => {
+  if (isDrawing) isDrawing = false;
   if (isPanning) isPanning = false;
 });
 // Handle canvas clicks
 canvas.addEventListener('click', (e) => {
+  // Skip click drawing for pen/eraser as handled by drag
+  if (tool === 'pen' || tool === 'eraser') return;
   // Convert screen click to layer pixel coordinates (pan/zoom + resolution scale)
   const rect = canvas.getBoundingClientRect();
   const canvasX = e.clientX - rect.left;
