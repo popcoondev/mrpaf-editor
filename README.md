@@ -100,7 +100,39 @@ The following areas are not yet fully implemented. Each should be developed in i
   - [ ] Advanced layer properties panel (blending modes, transforms)
 
 *Generated and maintained by the AI agent during development to ensure context continuity.*
-  
+
+## Pending UI/Layout Improvements
+以下の画面レイアウトおよび UI 強化項目は、次フェーズでの実装が推奨されます。
+
+- **Main Toolbar**
+  - 新規プロジェクト作成・名前を付けて保存などファイルメニューの追加
+  - Undo／Redo ボタンの追加
+  - 各操作ボタンにアイコンとツールチップ表示
+  - 現在のズーム倍率表示
+- **Left Panel (Tools & Layers)**
+  - アクティブツールの視覚的ハイライト
+  - グリッド表示の ON/OFF トグル
+  - レイヤーリストに名前・サムネイル表示、Lock／Hide トグル
+  - レイヤーごとのブレンドモード選択・不透明度スライダー
+  - レイヤー階層とドラッグ＆ドロップによる並び替え
+- **Canvas Area**
+  - マウス座標・下のピクセル色を示すステータスバー
+  - 透明部分用チェッカーボード背景
+  - ブラシサイズのプレビュー表示（カーソル形状）
+- **Right Panel (Tabs)**
+  - Resources タブの実装
+  - Animation タブ：フレームのドラッグ＆ドロップ並び替え、キーフレーム編集 UI
+  - Palette タブ：色のドラッグ＆ドロップ並び替え、グループ管理
+  - Settings タブに「適用」ボタンまたは即時反映インジケータ
+- **Bottom Toolbar (Animation Controls)**
+  - 再生中／停止中のステータスインジケータ強化
+  - イージングやトランジション設定 UI
+- **Global UI**
+  - メニューバー／コンテキストメニュー（右クリックメニュー）
+  - キーボードショートカット一覧／ヘルプオーバーレイ
+  - レスポンシブレイアウト対応
+  - ダークテーマ切り替え
+
 ## Infrastructure & Refactoring Roadmap
 以下のインフラ改善とアーキテクチャ整備は、各機能実装のタイミングを見ながら段階的に導入します。
 

@@ -5,20 +5,18 @@
   <title>MRPAF Editor MVP</title>
   <style>
     html, body { margin:0; padding:0; height:100%; display:flex; flex-direction:column; font-family:Arial, sans-serif; }
-    #header { background:#333; color:#fff; padding:8px 16px; }
+    /* Removed header styling per new layout */
     #top-toolbar, #bottom-toolbar { background:#f4f4f4; padding:4px 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
     #main-container { flex:1; display:flex; overflow:hidden; }
     #left-panel, #right-panel { width:200px; overflow-y:auto; padding:8px; border:1px solid #ccc; }
     #canvas-container { flex:1; display:flex; justify-content:center; align-items:center; background:#e0e0e0; }
     canvas { border:1px solid #000; }
-    #footer { background:#333; color:#fff; padding:4px 16px; text-align:center; }
+    /* Removed footer styling per new layout */
   </style>
   <script src="https://cdn.jsdelivr.net/npm/gif.js/dist/gif.js"></script>
 </head>
 <body>
-  <div id="header">
-    <h1>MRPAF Editor MVP</h1>
-  </div>
+  <!-- Header removed per new layout -->
   <div id="top-toolbar">
     <button id="save-local">Save</button>
     <button id="load-local">Load</button>
@@ -35,22 +33,182 @@
   </div>
   <div id="main-container">
     <div id="left-panel">
+      <!-- Tool Controls -->
+      <div id="tool-controls">
+        <button id="pen">Pen</button>
+        <button id="eraser">Eraser</button>
+        <button id="line">Line</button>
+        <button id="bucket">Bucket</button>
+        <button id="color-picker">Color Picker</button>
+        <button id="pan">Pan</button>
+        <button id="clear">Clear</button>
+        <label>Brush Size: <input type="number" id="brush-size" min="1" value="1" style="width:50px;"></label>
+        <label>Symmetry: 
+          <select id="symmetry-mode">
+            <option value="none">None</option>
+            <option value="vertical">Vertical</option>
+            <option value="horizontal">Horizontal</option>
+            <option value="both">Both</option>
+          </select>
+        </label>
+        <label>Onion: 
+          <input type="checkbox" id="onion-enable"> 
+          <input type="range" id="onion-opacity" min="0" max="1" step="0.1" value="0.5">
+        </label>
+      </div>
+      <!-- Layer Controls -->
       <h2>Layers</h2>
+      <div id="layer-controls">
+        <button id="add-layer">Add Layer</button>
+        <button id="remove-layer">Remove Layer</button>
+      </div>
       <div id="layers"></div>
     </div>
+
     <div id="canvas-container">
       <canvas id="canvas" width="512" height="512"></canvas>
     </div>
-    <div id="right-panel">
-      <h2>Palette</h2>
-      <div id="palette-controls"></div>
-      <div id="palette"></div>
-    </div>
+
+    <div id="right-panel" style="display:flex; flex-direction:column; border-left:1px 
+    solid #ccc;">
+                 <!-- タブボタン -->
+                 <div id="right-tabs" style="display:flex; gap:8px; padding:4px; border-bottom:1px 
+    solid #ccc;">
+                   <button data-tab="palette" class="active">Palette</button>
+                   <button data-tab="settings">Settings</button>
+                   <button data-tab="resources">Resources</button>
+                   <button data-tab="animation">Animation</button>
+                 </div>
+                 <!-- パネル群 -->
+                 <div id="right-panels" style="flex:1; overflow:auto; padding:8px;">
+                   <!-- Palette タブ -->
+                   <div class="tab-panel" data-tab="palette">
+                     <h2>Palette</h2>
+                     <div id="palette-controls">
+                       <button id="add-color">Add Color</button>
+                       <button id="remove-color">Remove Color</button>
+                     </div>
+                     <div id="palette"></div>
+                   </div>
+                   <!-- Settings タブ -->
+                   <div class="tab-panel" data-tab="settings" style="display:none;">
+                     <h2>Settings</h2>
+                     <!-- Project Metadata -->
+                     <section id="metadata-panel">
+                       <h3>Project Metadata</h3>
+                       <label>Title: <input id="meta-title" type="text"></label><br>
+                       <label>Author: <input id="meta-author" type="text"></label><br>
+                       <label>Description:<br><textarea id="meta-description" 
+    rows="2"></textarea></label><br>
+                       <label>Tags: <input id="meta-tags" type="text"></label><br>
+                       <label>License: <input id="meta-license" type="text"></label><br>
+                       <h4>Work</h4>
+                       <label>Series: <input id="meta-work-series" type="text"></label><br>
+                       <label>Character: <input id="meta-work-character" type="text"></label><br>
+                       <label>Scene: <input id="meta-work-scene" type="text"></label><br>
+                       <label>Variation: <input id="meta-work-variation" type="text"></label><br>
+                       <h4>Tool</h4>
+                       <label>Name: <input id="meta-tool-name" type="text"></label><br>
+                       <label>Version: <input id="meta-tool-version" type="text"></label><br>
+                       <label>Exporter: <input id="meta-tool-exporter" type="text"></label><br>
+                       <h4>Compatibility</h4>
+                       <label>Min Version: <input id="meta-compat-min-version" 
+    type="text"></label><br>
+                       <label>Features: <input id="meta-compat-features" type="text"></label>
+                     </section>
+                     <!-- Canvas Settings -->
+                     <section id="canvas-settings-panel" style="margin-top:16px;">
+                       <h3>Canvas Settings</h3>
+                       <label>Pixel Unit: <input id="canvas-pixel-unit" type="number" step="0.1" 
+    value="1.0"></label><br>
+                       <label>Aspect Ratio: <input id="canvas-aspect-ratio" type="number" step="0.1" 
+    value="1.0"></label><br>
+                       <label>Background Color: <input id="canvas-bg-color" type="color" 
+    value="#ffffff"></label><br>
+                       <!-- Background Image Layer Controls -->
+                       <label style="margin-top:8px; display:block;">
+                         Background Image: <button type="button" id="add-background">Load Image</button>
+                       </label>
+                       <label>
+                         <input type="checkbox" id="background-visible" checked>
+                         Show Background
+                       </label><br>
+                       <label>
+                         Background Opacity: <input type="range" id="background-opacity" min="0" max="1" step="0.01" value="1">
+                       </label>
+                     </section>
+                     <!-- Resolution Controls -->
+                     <section id="resolution-controls" style="margin-top:16px;">
+                       <h3>Resolution</h3>
+                       <label>Width: <input id="canvas-width" type="number" min="1" 
+    value="16"></label>
+                       <label>Height: <input id="canvas-height" type="number" min="1" 
+    value="16"></label>
+                       <button id="set-resolution">Set</button>
+                     </section>
+                     <!-- Coordinate System -->
+                     <section id="coord-settings-panel" style="margin-top:16px;">
+                       <h3>Coordinate System</h3>
+                       <label>Origin: <select id="coord-origin"><option>top-left</option><option>bott
+    om-left</option><option>center</option></select></label><br>
+                       <label>X Axis: <select 
+    id="coord-x-axis"><option>right</option><option>left</option></select></label><br>
+                       <label>Y Axis: <select 
+    id="coord-y-axis"><option>down</option><option>up</option></select></label><br>
+                       <label>Unit: <select 
+    id="coord-unit"><option>pixel</option><option>subpixel</option></select></label><br>
+                       <label>Base Unit: <input id="coord-base-unit" type="number" step="0.1" 
+    value="1.0"></label><br>
+                       <label>Precision: <input id="coord-precision" type="number" 
+    value="4"></label><br>
+                       <label>Allow Float: <input id="coord-allow-float" type="checkbox"></label>
+                     </section>
+                     <!-- Color Space -->
+                     <section id="color-space-panel" style="margin-top:16px;">
+                       <h3>Color Space</h3>
+                       <label>Profile: <select 
+    id="cs-profile"><option>sRGB</option><option>AdobeRGB</option></select></label><br>
+                       <label>Bit Depth: <input id="cs-bitdepth" type="number" value="8"></label><br>
+                       <label>Gamma: <input id="cs-gamma" type="number" value="2.2"></label><br>
+                       <label>White Point: <select 
+    id="cs-whitepoint"><option>D65</option><option>D50</option></select></label>
+                     </section>
+                     <!-- Compression Profile -->
+                     <section id="compression-profile-panel" style="margin-top:16px;">
+                       <h3>Compression Profile</h3>
+                       <label>Name: <input id="cp-name" type="text"></label><br>
+                       <label>Auto: <input id="cp-auto" type="checkbox"></label><br>
+                       <label>Quality: <input id="cp-quality" type="number" step="0.01" 
+    value="0.95"></label>
+                     </section>
+                   </div>
+                   <!-- Resources tab -->
+                   <div class="tab-panel" data-tab="resources" style="display:none;">
+                     <h2>Resources</h2>
+                     <p>Not yet implemented</p>
+                   </div>
+                   <!-- Animation tab -->
+                   <div class="tab-panel" data-tab="animation" style="display:none;">
+                     <h2>Animation</h2>
+                     <div id="timeline-controls"></div>
+                   </div>
+                 </div>
+               </div>
   </div>
   <div id="bottom-toolbar">
-    <div id="timeline-controls"></div>
+    <div id="timeline-controls">
+      <button id="prev-frame">◀ Prev</button>
+      <button id="next-frame">Next ▶</button>
+      <button id="add-frame">Add Frame</button>
+      <button id="remove-frame">Remove Frame</button>
+      <span id="frame-indicator">Frame 1/1</span>
+      <label>Duration: <input type="number" id="frame-duration" min="1" value="0" style="width:50px;"></label>
+      <label><input type="checkbox" id="loop-check"> Loop</label>
+      <label><input type="checkbox" id="pingpong-check"> PingPong</label>
+      <label>Interp: <select id="interp-select"><option value="none">None</option><option value="linear">Linear</option></select></label>
+    </div>
   </div>
-  <div id="footer">MRPAF Editor MVP – v2.0.1</div>
+  <!-- Footer removed per new layout -->
   <script type="module" src="./main.js"></script>
 </body>
 </html>

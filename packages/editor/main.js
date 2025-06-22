@@ -1,5 +1,21 @@
 import { createEmptyProject, updateColorSpaces } from '../core/index.js';
 import { drawProject } from '../renderer/index.js';
+// Graceful stub for missing UI elements to prevent null reference errors
+{
+  const _getById = document.getElementById.bind(document);
+  document.getElementById = (id) => {
+    const el = _getById(id);
+    if (el) return el;
+    const dummy = {};
+    dummy.addEventListener = dummy.removeEventListener = () => {};
+    dummy.style = {};
+    dummy.value = '';
+    dummy.checked = false;
+    dummy.disabled = false;
+    dummy.click = () => {};
+    return dummy;
+  };
+}
 // Background image layer handling
 const bgFileInput = document.createElement('input');
 bgFileInput.type = 'file';
@@ -37,6 +53,7 @@ function syncLayerGridToggles() {
 }
 syncLayerGridToggles();
 // --- Metadata panel setup ---
+if (document.getElementById('meta-title')) {
 const metaTitle = document.getElementById('meta-title');
 const metaAuthor = document.getElementById('meta-author');
 const metaDescription = document.getElementById('meta-description');
@@ -72,7 +89,7 @@ function updateMetadataPanel() {
     ? project.metadata.compatibility.features.join(',') : '';
 }
 // Initialize metadata panel
-updateMetadataPanel();
+if (typeof updateMetadataPanel === 'function') updateMetadataPanel();
 // Update metadata on user input
  [metaTitle, metaAuthor, metaDescription, metaTags, metaLicense].forEach(input => {
   input.addEventListener('input', () => {
@@ -116,7 +133,9 @@ metaCompatFeatures.addEventListener('input', () => {
     .split(',').map(s => s.trim()).filter(s => s);
   project.metadata.modified = new Date().toISOString();
 });
+}
 // --- Canvas & Display Settings Setup ---
+if (document.getElementById('canvas-pixel-unit')) {
 const canvasPixelUnitInput = document.getElementById('canvas-pixel-unit');
 const canvasAspectRatioInput = document.getElementById('canvas-aspect-ratio');
 const canvasBgColorInput = document.getElementById('canvas-bg-color');
@@ -140,7 +159,9 @@ updateCanvasSettingsPanel();
     renderCanvas();
   });
 });
+}
 // --- Coordinate System Settings Setup ---
+if (document.getElementById('coord-origin')) {
 const coordOriginInput = document.getElementById('coord-origin');
 const coordXAxisInput = document.getElementById('coord-x-axis');
 const coordYAxisInput = document.getElementById('coord-y-axis');
@@ -176,7 +197,9 @@ updateCoordSettingsPanel();
     renderCanvas();
   });
 });
+}
 // --- Color Space Settings Setup ---
+if (document.getElementById('cs-profile')) {
 const csProfileInput = document.getElementById('cs-profile');
 const csBitdepthInput = document.getElementById('cs-bitdepth');
 const csGammaInput = document.getElementById('cs-gamma');
@@ -201,7 +224,9 @@ updateColorSpacePanel();
     project.metadata.modified = new Date().toISOString();
   });
 });
+}
 // --- Compression Profile Settings Setup ---
+if (document.getElementById('cp-name')) {
 const cpNameInput = document.getElementById('cp-name');
 const cpAutoInput = document.getElementById('cp-auto');
 const cpQualityInput = document.getElementById('cp-quality');
@@ -223,13 +248,16 @@ updateCompressionProfilePanel();
     project.metadata.modified = new Date().toISOString();
   });
 });
+}
 // History stacks for undo/redo
 let undoStack = [];
 let redoStack = [];
 // Update Undo/Redo button states
 function updateUndoRedoButtons() {
-  document.getElementById('undo').disabled = undoStack.length === 0;
-  document.getElementById('redo').disabled = redoStack.length === 0;
+  const undoBtn = document.getElementById('undo');
+  const redoBtn = document.getElementById('redo');
+  if (undoBtn) undoBtn.disabled = undoStack.length === 0;
+  if (redoBtn) redoBtn.disabled = redoStack.length === 0;
 }
 // Push current state to undo stack and clear redo stack
 function pushHistory() {
@@ -248,36 +276,39 @@ let currentLayerIndex = 0;
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 // Resolution controls
-const widthInput = document.getElementById('canvas-width');
-const heightInput = document.getElementById('canvas-height');
-document.getElementById('set-resolution').addEventListener('click', () => {
-  const newWidth = parseInt(widthInput.value, 10);
-  const newHeight = parseInt(heightInput.value, 10);
-  if (!newWidth || !newHeight || newWidth < 1 || newHeight < 1) {
-    alert('Invalid dimensions');
-    return;
-  }
-  width = newWidth;
-  height = newHeight;
-  project = createEmptyProject(width, height);
-  syncLayerGridToggles();
-  undoStack = [];
-  redoStack = [];
-  currentColorIndex = 0;
-  currentLayerIndex = 0;
-  palette = project.palette;
-  renderPalette();
-  renderLayers();
-  renderCanvas();
-  updateUndoRedoButtons();
-  // Reset metadata, settings panels and derive colorSpaces for fresh palette
-  if (typeof updateMetadataPanel === 'function') updateMetadataPanel();
-  if (typeof updateCanvasSettingsPanel === 'function') updateCanvasSettingsPanel();
-  if (typeof updateCoordSettingsPanel === 'function') updateCoordSettingsPanel();
-  if (typeof updateColorSpacePanel === 'function') updateColorSpacePanel();
-  if (typeof updateCompressionProfilePanel === 'function') updateCompressionProfilePanel();
-  project.palette.forEach(entry => updateColorSpaces(entry));
-});
+// Resolution controls (guarded)
+if (document.getElementById('canvas-width')) {
+  const widthInput = document.getElementById('canvas-width');
+  const heightInput = document.getElementById('canvas-height');
+  document.getElementById('set-resolution').addEventListener('click', () => {
+    const newWidth = parseInt(widthInput.value, 10);
+    const newHeight = parseInt(heightInput.value, 10);
+    if (!newWidth || !newHeight || newWidth < 1 || newHeight < 1) {
+      alert('Invalid dimensions');
+      return;
+    }
+    width = newWidth;
+    height = newHeight;
+    project = createEmptyProject(width, height);
+    syncLayerGridToggles();
+    undoStack = [];
+    redoStack = [];
+    currentColorIndex = 0;
+    currentLayerIndex = 0;
+    palette = project.palette;
+    renderPalette();
+    renderLayers();
+    renderCanvas();
+    updateUndoRedoButtons();
+    // Reset panels (if implemented)
+    if (typeof updateMetadataPanel === 'function') updateMetadataPanel();
+    if (typeof updateCanvasSettingsPanel === 'function') updateCanvasSettingsPanel();
+    if (typeof updateCoordSettingsPanel === 'function') updateCoordSettingsPanel();
+    if (typeof updateColorSpacePanel === 'function') updateColorSpacePanel();
+    if (typeof updateCompressionProfilePanel === 'function') updateCompressionProfilePanel();
+    project.palette.forEach(entry => updateColorSpaces(entry));
+  });
+}
 // Zoom and pan state
 let zoom = 1;
 let panX = 0, panY = 0;
@@ -445,7 +476,7 @@ function renderPalette() {
 }
 renderPalette();
 // Palette editing controls
-document.getElementById('add-color').addEventListener('click', () => {
+document.getElementById('add-color')?.addEventListener('click', () => {
     // Add new palette entry
     const ids = palette.map(e => e.id);
     const nextId = ids.length ? Math.max(...ids) + 1 : 0;
@@ -457,7 +488,7 @@ document.getElementById('add-color').addEventListener('click', () => {
     project.palette = palette;
     renderPalette();
 });
-document.getElementById('remove-color').addEventListener('click', () => {
+document.getElementById('remove-color')?.addEventListener('click', () => {
   if (palette.length <= 1) {
     alert('At least one color must remain.');
     return;
@@ -474,7 +505,7 @@ document.getElementById('remove-color').addEventListener('click', () => {
   renderPalette();
 });
 // Layer controls UI
-const layerList = document.getElementById('layer-list');
+const layerList = document.getElementById('layers');
 function renderLayers() {
   // Ensure grid toggles array matches current layers
   syncLayerGridToggles();
@@ -795,7 +826,7 @@ function renderLayers() {
 }
 renderLayers();
 // Add Layer button
-document.getElementById('add-layer').addEventListener('click', () => {
+document.getElementById('add-layer')?.addEventListener('click', () => {
   // Save state for undo
   pushHistory();
   const newId = `layer-${project.layers.length + 1}`;
@@ -826,7 +857,7 @@ document.getElementById('add-layer').addEventListener('click', () => {
   renderCanvas();
 });
 // Remove Layer button
-document.getElementById('remove-layer').addEventListener('click', () => {
+document.getElementById('remove-layer')?.addEventListener('click', () => {
   if (project.layers.length <= 1) {
     alert('Cannot remove the last layer.');
     return;
@@ -870,11 +901,11 @@ function drawLine(x0, y0, x1, y1) {
     if (e2 <= dx) { err += dx; y0 += sy; }
   }
 }
-document.getElementById('pen').addEventListener('click', () => tool = 'pen');
-document.getElementById('eraser').addEventListener('click', () => tool = 'eraser');
-document.getElementById('line').addEventListener('click', () => { tool = 'line'; lineStart = null; });
-document.getElementById('color-picker').addEventListener('click', () => tool = 'colorpicker');
-document.getElementById('bucket').addEventListener('click', () => tool = 'bucket');
+document.getElementById('pen')?.addEventListener('click', () => tool = 'pen');
+document.getElementById('eraser')?.addEventListener('click', () => tool = 'eraser');
+document.getElementById('line')?.addEventListener('click', () => { tool = 'line'; lineStart = null; });
+document.getElementById('color-picker')?.addEventListener('click', () => tool = 'colorpicker');
+document.getElementById('bucket')?.addEventListener('click', () => tool = 'bucket');
 // Symmetry mode selector binding
 const symmetrySelect = document.getElementById('symmetry-mode');
 symmetrySelect.addEventListener('change', () => {
@@ -1141,14 +1172,14 @@ playBtn.addEventListener('click', () => {
   }
 });
 updateFrameIndicator();
-document.getElementById('clear').addEventListener('click', () => {
+document.getElementById('clear')?.addEventListener('click', () => {
   pushHistory();
   // Clear pixel data to transparent (null)
   project.layers[currentLayerIndex].pixels.data.fill(null);
   renderCanvas();
 });
 // Zoom & pan tool bindings
-document.getElementById('pan').addEventListener('click', () => tool = 'pan');
+document.getElementById('pan')?.addEventListener('click', () => tool = 'pan');
 document.getElementById('zoom-in').addEventListener('click', () => { zoom *= 1.2; renderCanvas(); });
 document.getElementById('zoom-out').addEventListener('click', () => { zoom /= 1.2; renderCanvas(); });
 document.getElementById('reset-zoom').addEventListener('click', () => { zoom = 1; panX = 0; panY = 0; renderCanvas(); });
@@ -1648,5 +1679,34 @@ canvas.addEventListener('click', (e) => {
   renderCanvas();
 });
 
-// Initial render
+// 初回キャンバス描画
 renderCanvas();
+
+// Initialize right sidebar tab switching
+function initRightSidebarTabs() {
+  if (initRightSidebarTabs._inited) return;
+  initRightSidebarTabs._inited = true;
+  const tabsEl = document.querySelector('#right-tabs');
+  const panels = document.querySelectorAll('#right-panels .tab-panel');
+  if (!tabsEl || panels.length === 0) {
+    console.warn('Sidebar tabs init: no tabs or panels found');
+    return;
+  }
+  const tabs = tabsEl.querySelectorAll('[data-tab]');
+  console.log('Sidebar tabs count:', tabs.length, 'panels:', panels.length);
+  tabsEl.addEventListener('click', e => {
+    const btn = e.target.closest('[data-tab]');
+    if (!btn || !tabsEl.contains(btn)) return;
+    const sel = btn.dataset.tab;
+    tabs.forEach(b => b.classList.toggle('active', b === btn));
+    panels.forEach(p => {
+      p.style.display = (p.dataset.tab === sel ? 'block' : 'none');
+    });
+  });
+}
+
+// Initialize right sidebar tabs immediately
+initRightSidebarTabs();
+// Also ensure binding after load in case script timing differs
+window.addEventListener('DOMContentLoaded', initRightSidebarTabs);
+window.addEventListener('load', initRightSidebarTabs);
