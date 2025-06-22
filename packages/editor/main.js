@@ -24,9 +24,11 @@ bgFileInput.style.display = 'none';
 document.body.appendChild(bgFileInput);
 // Background image state
 // Background image state
+// Background image state
 let backgroundImg = null;
 let backgroundVisible = true;
 let backgroundOpacity = 1;
+let backgroundOffset = { x: 0, y: 0 };
 // Onion skin state
 let onionEnabled = false;
 let onionOpacity = 0.5;
@@ -136,29 +138,46 @@ metaCompatFeatures.addEventListener('input', () => {
 }
 // --- Canvas & Display Settings Setup ---
 if (document.getElementById('canvas-pixel-unit')) {
-const canvasPixelUnitInput = document.getElementById('canvas-pixel-unit');
-const canvasAspectRatioInput = document.getElementById('canvas-aspect-ratio');
-const canvasBgColorInput = document.getElementById('canvas-bg-color');
+  const canvasPixelUnitInput = document.getElementById('canvas-pixel-unit');
+  const canvasAspectRatioInput = document.getElementById('canvas-aspect-ratio');
+  const canvasBgColorInput = document.getElementById('canvas-bg-color');
+  const bgOffsetXInput = document.getElementById('background-offset-x');
+  const bgOffsetYInput = document.getElementById('background-offset-y');
 /** Populate canvas settings inputs from project.canvas */
 function updateCanvasSettingsPanel() {
   const cs = project.canvas;
   canvasPixelUnitInput.value = cs.pixelUnit;
   canvasAspectRatioInput.value = cs.pixelAspectRatio;
-  canvasBgColorInput.value = cs.backgroundColor;
+    canvasBgColorInput.value = cs.backgroundColor;
+    if (bgOffsetXInput) bgOffsetXInput.value = backgroundOffset.x;
+    if (bgOffsetYInput) bgOffsetYInput.value = backgroundOffset.y;
 }
 // Initialize canvas settings panel
 updateCanvasSettingsPanel();
-// Update project.canvas on user input
-[canvasPixelUnitInput, canvasAspectRatioInput, canvasBgColorInput].forEach(input => {
-  input.addEventListener('input', () => {
-    pushHistory();
-    project.canvas.pixelUnit = parseFloat(canvasPixelUnitInput.value) || 1.0;
-    project.canvas.pixelAspectRatio = parseFloat(canvasAspectRatioInput.value) || 1.0;
-    project.canvas.backgroundColor = canvasBgColorInput.value;
-    project.metadata.modified = new Date().toISOString();
-    renderCanvas();
+  // Update project.canvas on user input
+  [canvasPixelUnitInput, canvasAspectRatioInput, canvasBgColorInput].forEach(input => {
+    input.addEventListener('input', () => {
+      pushHistory();
+      project.canvas.pixelUnit = parseFloat(canvasPixelUnitInput.value) || 1.0;
+      project.canvas.pixelAspectRatio = parseFloat(canvasAspectRatioInput.value) || 1.0;
+      project.canvas.backgroundColor = canvasBgColorInput.value;
+      project.metadata.modified = new Date().toISOString();
+      renderCanvas();
+    });
   });
-});
+  // Background offset inputs
+  if (bgOffsetXInput) {
+    bgOffsetXInput.addEventListener('input', () => {
+      backgroundOffset.x = parseInt(bgOffsetXInput.value, 10) || 0;
+      renderCanvas();
+    });
+  }
+  if (bgOffsetYInput) {
+    bgOffsetYInput.addEventListener('input', () => {
+      backgroundOffset.y = parseInt(bgOffsetYInput.value, 10) || 0;
+      renderCanvas();
+    });
+  }
 }
 // --- Coordinate System Settings Setup ---
 if (document.getElementById('coord-origin')) {
@@ -329,7 +348,10 @@ function renderCanvas() {
   // Draw background image full canvas with visibility and opacity
   if (backgroundImg && backgroundVisible) {
     ctx.globalAlpha = backgroundOpacity;
-    ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+    // Draw background image with user-defined offset
+    ctx.drawImage(backgroundImg,
+                  backgroundOffset.x, backgroundOffset.y,
+                  canvas.width, canvas.height);
     ctx.globalAlpha = 1;
   }
   // Apply pan and zoom for pixel layers
