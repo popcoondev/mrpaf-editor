@@ -1078,9 +1078,16 @@ addFrameBtn.addEventListener('click', () => {
   setFrame(project.frames.length - 1);
 });
 removeFrameBtn.addEventListener('click', () => {
-  if (project.frames.length <= 1) { alert('Cannot remove the last frame.'); return; }
-  project.frames.splice(currentFrameIndex, 1);
-  setFrame(Math.min(currentFrameIndex, project.frames.length - 1));
+  if (project.frames.length <= 1) {
+    alert('Cannot remove the last frame.');
+    return;
+  }
+  // Remove currently selected frame
+  const removeIdx = currentFrameIndex;
+  project.frames.splice(removeIdx, 1);
+  // Determine new selection: previous frame if exists, otherwise first
+  const newIdx = removeIdx > 0 ? removeIdx - 1 : 0;
+  setFrame(newIdx);
 });
 // Frame duration edit handler
 if (durationInput) {
