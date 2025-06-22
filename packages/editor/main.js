@@ -1750,3 +1750,44 @@ initRightSidebarTabs();
 // Also ensure binding after load in case script timing differs
 window.addEventListener('DOMContentLoaded', initRightSidebarTabs);
 window.addEventListener('load', initRightSidebarTabs);
+
+// Panel Resizer Setup
+(function() {
+  const left = document.getElementById('left-panel');
+  const right = document.getElementById('right-panel');
+  const bottom = document.getElementById('bottom-toolbar');
+  const resizers = document.querySelectorAll('.resizer');
+  let startX, startY, startLeftWidth, startRightWidth, startBottomHeight;
+  function initResize(e) {
+    e.preventDefault();
+    const type = e.target.dataset.resizer;
+    startX = e.clientX;
+    startY = e.clientY;
+    if (type === 'left') {
+      startLeftWidth = left.getBoundingClientRect().width;
+    } else if (type === 'right') {
+      startRightWidth = right.getBoundingClientRect().width;
+    } else if (type === 'bottom') {
+      startBottomHeight = bottom.getBoundingClientRect().height;
+    }
+    function onMouseMove(evt) {
+      if (type === 'left') {
+        const dx = evt.clientX - startX;
+        left.style.width = (startLeftWidth + dx) + 'px';
+      } else if (type === 'right') {
+        const dx = startX - evt.clientX;
+        right.style.width = (startRightWidth + dx) + 'px';
+      } else if (type === 'bottom') {
+        const dy = startY - evt.clientY;
+        bottom.style.height = (startBottomHeight + dy) + 'px';
+      }
+    }
+    function onMouseUp() {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    }
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }
+  resizers.forEach(resizer => resizer.addEventListener('mousedown', initResize));
+})();

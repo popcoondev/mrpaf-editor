@@ -12,6 +12,22 @@
     #canvas-container { flex:1; display:flex; justify-content:center; align-items:center; background:#e0e0e0; }
     canvas { border:1px solid #000; }
     /* Removed footer styling per new layout */
+    /* Resizer bars for panels */
+    .resizer {
+      background: transparent;
+      z-index: 10;
+    }
+    .resizer:hover {
+      background: rgba(0,0,0,0.1);
+    }
+    .resizer-vertical {
+      width: 5px;
+      cursor: col-resize;
+    }
+    .resizer-horizontal {
+      height: 5px;
+      cursor: row-resize;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/gif.js/dist/gif.js"></script>
 </head>
@@ -74,10 +90,14 @@
       </div>
       <div id="layers"></div>
     </div>
+    <!-- Vertical resizer between left panel and canvas -->
+    <div class="resizer resizer-vertical" data-resizer="left"></div>
 
     <div id="canvas-container">
       <canvas id="canvas" width="512" height="512"></canvas>
     </div>
+    <!-- Vertical resizer between canvas and right panel -->
+    <div class="resizer resizer-vertical" data-resizer="right"></div>
 
     <div id="right-panel" style="display:flex; flex-direction:column; border-left:1px 
     solid #ccc;">
@@ -214,6 +234,8 @@
                  </div>
                </div>
   </div>
+  <!-- Horizontal resizer between canvas area and bottom toolbar -->
+  <div class="resizer resizer-horizontal" data-resizer="bottom"></div>
   <div id="bottom-toolbar">
     <div id="timeline-controls">
       <button id="prev-frame">◀ Prev</button>
