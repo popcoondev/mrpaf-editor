@@ -918,17 +918,17 @@ let tool = 'pen';
 let lastMode = 'pen';
 /** Update tool button UI to reflect current tool */
 function updateToolUI() {
-  const map = {
-    pen: 'pen',
-    eraser: 'eraser',
-    line: 'line',
-    bucket: 'bucket',
-    colorpicker: 'color-picker',
-    pan: 'pan'
-  };
-  const activeId = map[tool];
   document.querySelectorAll('#tool-controls button').forEach(btn => {
-    btn.classList.toggle('active', btn.id === activeId);
+    const id = btn.id;
+    if (id === 'pen' || id === 'eraser') {
+      // Highlight current draw mode
+      btn.classList.toggle('active', id === lastMode);
+    } else if (id === 'line' || id === 'bucket' || id === 'color-picker' || id === 'pan') {
+      // Highlight current shape/tool mode
+      btn.classList.toggle('active', id === tool);
+    } else {
+      btn.classList.remove('active');
+    }
   });
 }
 // Symmetry mode: none, vertical, horizontal, both
