@@ -512,7 +512,16 @@ function renderLayers() {
   layerList.innerHTML = '';
   project.layers.forEach((layer, idx) => {
     const li = document.createElement('li');
+    // Style layer container and highlight active
+    li.style.border = '1px solid #ccc';
+    li.style.padding = '4px';
+    li.style.marginBottom = '4px';
+    if (idx === currentLayerIndex) {
+      li.style.backgroundColor = '#e0f7ff';
+    }
     // Visibility toggle
+    const visLabel = document.createElement('label');
+    visLabel.style.marginRight = '8px';
     const visCheckbox = document.createElement('input');
     visCheckbox.type = 'checkbox';
     visCheckbox.checked = layer.visible;
@@ -521,18 +530,23 @@ function renderLayers() {
       layer.visible = visCheckbox.checked;
       renderCanvas();
     });
-    li.appendChild(visCheckbox);
+    visLabel.appendChild(visCheckbox);
+    visLabel.appendChild(document.createTextNode('Visible'));
+    li.appendChild(visLabel);
     // Grid toggle per layer
+    const gridLabel = document.createElement('label');
+    gridLabel.style.marginRight = '8px';
     const gridCheckbox = document.createElement('input');
     gridCheckbox.type = 'checkbox';
     gridCheckbox.checked = layerGridToggles[idx];
-    gridCheckbox.title = 'Toggle grid overlay';
-    gridCheckbox.style.marginLeft = '4px';
+    gridCheckbox.title = 'Grid';
     gridCheckbox.addEventListener('change', () => {
       layerGridToggles[idx] = gridCheckbox.checked;
       renderCanvas();
     });
-    li.appendChild(gridCheckbox);
+    gridLabel.appendChild(gridCheckbox);
+    gridLabel.appendChild(document.createTextNode('Grid'));
+    li.appendChild(gridLabel);
     // Layer name / select
     const nameSpan = document.createElement('span');
     nameSpan.textContent = layer.id;
@@ -544,18 +558,22 @@ function renderLayers() {
     });
     li.appendChild(nameSpan);
     // Opacity control
+    const opacityLabel = document.createElement('label');
+    opacityLabel.style.marginLeft = '8px';
+    opacityLabel.textContent = 'Opacity: ';
     const opacityInput = document.createElement('input');
     opacityInput.type = 'range';
     opacityInput.min = 0;
     opacityInput.max = 1;
     opacityInput.step = 0.1;
     opacityInput.value = layer.opacity != null ? layer.opacity : 1;
-    opacityInput.style.marginLeft = '8px';
     opacityInput.addEventListener('input', () => {
       pushHistory();
       layer.opacity = parseFloat(opacityInput.value);
       renderCanvas();
     });
+    opacityLabel.appendChild(opacityInput);
+    li.appendChild(opacityLabel);
     // Rename control (placed before opacity for visibility)
     const renameBtn = document.createElement('button');
     renameBtn.textContent = 'Rename';
@@ -604,6 +622,19 @@ function renderLayers() {
       }
     });
     li.appendChild(downBtn);
+    // --- Advanced settings accordion ---
+    const advToggle = document.createElement('button');
+    advToggle.textContent = 'Details';
+    advToggle.style.marginLeft = '8px';
+    const advPanel = document.createElement('div');
+    advPanel.style.display = 'none';
+    advPanel.style.marginLeft = '16px';
+    advToggle.addEventListener('click', () => {
+      const show = advPanel.style.display === 'none';
+      advPanel.style.display = show ? 'block' : 'none';
+      advToggle.textContent = show ? 'Hide Details' : 'Details';
+    });
+    li.appendChild(advToggle);
     // --- Layer blending mode selector ---
     const blendSelect = document.createElement('select');
     ['normal','multiply','screen','overlay','darken','lighten','hard-light','soft-light','color-dodge','color-burn'].forEach(mode => {
@@ -621,7 +652,7 @@ function renderLayers() {
       project.metadata.modified = new Date().toISOString();
       renderCanvas();
     });
-    li.appendChild(blendSelect);
+    advPanel.appendChild(blendSelect);
     // --- Layer transform controls: scale and rotation ---
     const scaleInput = document.createElement('input');
     scaleInput.type = 'number'; scaleInput.step = '0.1'; scaleInput.min = '0.1';
@@ -635,7 +666,7 @@ function renderLayers() {
       project.metadata.modified = new Date().toISOString();
       renderCanvas();
     });
-    li.appendChild(scaleInput);
+    advPanel.appendChild(scaleInput);
     const rotInput = document.createElement('input');
     rotInput.type = 'number'; rotInput.step = '1'; rotInput.min = '0'; rotInput.max = '360';
     rotInput.value = layer.transform?.rotation || 0;
@@ -648,7 +679,7 @@ function renderLayers() {
       project.metadata.modified = new Date().toISOString();
       renderCanvas();
     });
-    li.appendChild(rotInput);
+    advPanel.appendChild(rotInput);
     // Append opacity slider after reorder
     opacityInput.translated = true; // Ensure it is translated properly
     li.appendChild(opacityInput);
@@ -802,7 +833,7 @@ function renderLayers() {
         project.metadata.modified = new Date().toISOString();
         renderCanvas();
       });
-      li.appendChild(encSelect);
+      advPanel.appendChild(encSelect);
       // --- Pixel compression selector ---
       const compSelect = document.createElement('select');
       ['none','auto'].forEach(comp => {
@@ -819,8 +850,10 @@ function renderLayers() {
         layer.pixels.compression = compSelect.value;
         project.metadata.modified = new Date().toISOString();
       });
-      li.appendChild(compSelect);
+      advPanel.appendChild(compSelect);
     })();
+    // Append advanced settings panel
+    li.appendChild(advPanel);
     layerList.appendChild(li);
   });
 }
