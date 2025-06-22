@@ -624,15 +624,22 @@ function renderLayers() {
     li.appendChild(downBtn);
     // --- Advanced settings accordion ---
     const advToggle = document.createElement('button');
-    advToggle.textContent = 'Details';
-    advToggle.style.marginLeft = '8px';
+    advToggle.textContent = '▶ Details';
+    advToggle.style.display = 'block';
+    advToggle.style.width = '100%';
+    advToggle.style.margin = '4px 0';
+    advToggle.style.padding = '2px 4px';
+    advToggle.style.textAlign = 'left';
+    advToggle.style.backgroundColor = '#f5f5f5';
+    advToggle.style.border = '1px solid #ccc';
+    advToggle.style.cursor = 'pointer';
     const advPanel = document.createElement('div');
     advPanel.style.display = 'none';
     advPanel.style.marginLeft = '16px';
     advToggle.addEventListener('click', () => {
       const show = advPanel.style.display === 'none';
       advPanel.style.display = show ? 'block' : 'none';
-      advToggle.textContent = show ? 'Hide Details' : 'Details';
+      advToggle.textContent = show ? '▼ Details' : '▶ Details';
     });
     li.appendChild(advToggle);
     // --- Layer blending mode selector ---
