@@ -461,6 +461,22 @@ function renderCanvas() {
     ctx.strokeRect(x0, y0, size, size);
     ctx.restore();
   }
+  // Draw start point indicator for line tool
+  if (tool === 'line' && lineStart) {
+    const layer = project.layers[currentLayerIndex];
+    const res = layer.resolution || { pixelArraySize: { width: baseW, height: baseH }, scale: 1 };
+    const scale = res.scale;
+    const offset = layer.placement || { x: 0, y: 0 };
+    ctx.save();
+    ctx.strokeStyle = '#0f0';
+    ctx.setLineDash([4 / zoom]);
+    ctx.lineWidth = 1 / zoom;
+    const sx = (offset.x + lineStart.x * scale) * pixelSize;
+    const sy = (offset.y + lineStart.y * scale) * pixelSize;
+    const size = pixelSize * scale;
+    ctx.strokeRect(sx, sy, size, size);
+    ctx.restore();
+  }
 }
 
 /**
