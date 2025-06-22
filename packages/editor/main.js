@@ -912,7 +912,10 @@ document.getElementById('remove-layer')?.addEventListener('click', () => {
 });
 
 // Current tool state
+// Current primary tool: 'pen' or 'eraser' or 'colorpicker'
 let tool = 'pen';
+// Remember last pen/eraser mode to apply shape tools accordingly
+let lastMode = 'pen';
 // Symmetry mode: none, vertical, horizontal, both
 let symmetryMode = 'none';
 // For line tool: store starting point
@@ -941,11 +944,12 @@ function drawLine(x0, y0, x1, y1) {
     if (e2 <= dx) { err += dx; y0 += sy; }
   }
 }
-document.getElementById('pen')?.addEventListener('click', () => tool = 'pen');
-document.getElementById('eraser')?.addEventListener('click', () => tool = 'eraser');
+document.getElementById('pen')?.addEventListener('click', () => { tool = 'pen'; lastMode = 'pen'; });
+document.getElementById('eraser')?.addEventListener('click', () => { tool = 'eraser'; lastMode = 'eraser'; });
+// Line and bucket shape selectors
 document.getElementById('line')?.addEventListener('click', () => { tool = 'line'; lineStart = null; });
+document.getElementById('bucket')?.addEventListener('click', () => { tool = 'bucket'; });
 document.getElementById('color-picker')?.addEventListener('click', () => tool = 'colorpicker');
-document.getElementById('bucket')?.addEventListener('click', () => tool = 'bucket');
 // Symmetry mode selector binding
 const symmetrySelect = document.getElementById('symmetry-mode');
 symmetrySelect.addEventListener('change', () => {
@@ -1677,13 +1681,14 @@ canvas.addEventListener('click', (e) => {
     currentColorIndex = picked;
     renderPalette();
   } else if (tool === 'bucket') {
-    // Flood fill on current layer with symmetry support
+    // Flood fill on current layer (color or erase) with symmetry support
     pushHistory();
     const layer = project.layers[currentLayerIndex];
     if (layer.pixels && layer.pixels.data) {
       const data = layer.pixels.data;
       const w = layerW, h = layerH;
-      const replacement = currentColorIndex + 1;
+      // Determine fill value: 0 for erase, else selected color index+1
+      const replacement = lastMode === 'eraser' ? 0 : (currentColorIndex + 1);
       // Prepare seeds and targets for symmetric fills
       const seeds = [];
       const targets = [];
@@ -1730,7 +1735,7 @@ canvas.addEventListener('click', (e) => {
       });
     }
   } else if (tool === 'line') {
-    // Draw line on current layer between two clicks
+    // Draw or erase line on current layer between two clicks
     if (lineStart == null) {
       lineStart = { x: layerX, y: layerY };
     } else {
@@ -1739,6 +1744,9 @@ canvas.addEventListener('click', (e) => {
       const w = layerW, h = layerH;
       const x0 = lineStart.x, y0 = lineStart.y;
       const x1 = layerX, y1 = layerY;
+      // Determine eraser or pen mode
+      const prevColorIdx = currentColorIndex;
+      if (lastMode === 'eraser') currentColorIndex = -1;
       drawLine(x0, y0, x1, y1);
       // Symmetrical lines
       if (symmetryMode === 'vertical' || symmetryMode === 'both') {
@@ -1750,6 +1758,8 @@ canvas.addEventListener('click', (e) => {
       if (symmetryMode === 'both') {
         drawLine(w - 1 - x0, h - 1 - y0, w - 1 - x1, h - 1 - y1);
       }
+      // Restore color index
+      currentColorIndex = prevColorIdx;
       lineStart = null;
     }
   }
