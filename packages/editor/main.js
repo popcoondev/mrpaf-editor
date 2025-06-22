@@ -1012,6 +1012,8 @@ function setFrame(idx) {
   syncLayerGridToggles();
   renderLayers();
   updateFrameIndicator();
+  // Update frame thumbnail list
+  if (typeof renderFrameList === 'function') renderFrameList();
 }
 prevFrameBtn.addEventListener('click', () => setFrame(currentFrameIndex - 1));
 nextFrameBtn.addEventListener('click', () => setFrame(currentFrameIndex + 1));
@@ -1129,6 +1131,41 @@ setFrame = function(idx) {
 };
 // Initial render of tags
 renderFrameTags();
+// Frame thumbnails rendering
+const frameListEl = document.getElementById('frame-list');
+/** Render horizontal list of frame thumbnails */
+function renderFrameList() {
+  if (!frameListEl) return;
+  frameListEl.innerHTML = '';
+  project.frames.forEach((frame, i) => {
+    const thumb = document.createElement('canvas');
+    const size = 64;
+    thumb.width = size;
+    thumb.height = size;
+    thumb.style.margin = '0 4px';
+    thumb.style.cursor = 'pointer';
+    // Draw frame layers into thumbnail
+    const ctx = thumb.getContext('2d');
+    // Optionally fill background
+    ctx.fillStyle = project.canvas.backgroundColor || '#fff';
+    ctx.fillRect(0, 0, size, size);
+    // Temporarily set project.layers to frame.layers
+    const origLayers = project.layers;
+    project.layers = frame.layers;
+    // Draw into thumb
+    drawProject(ctx, project, project.palette);
+    // Restore layers
+    project.layers = origLayers;
+    // Highlight active frame
+    if (i === currentFrameIndex) {
+      thumb.style.outline = '2px solid #007acc';
+    }
+    thumb.addEventListener('click', () => setFrame(i));
+    frameListEl.appendChild(thumb);
+  });
+}
+// Initial thumbnail list
+renderFrameList();
 // Frame events editor setup
 const frameEventInput = document.getElementById('frame-event-input');
 const addFrameEventBtn = document.getElementById('add-frame-event');
