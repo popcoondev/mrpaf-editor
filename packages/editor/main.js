@@ -1855,3 +1855,24 @@ window.addEventListener('load', initRightSidebarTabs);
   }
   resizers.forEach(resizer => resizer.addEventListener('mousedown', initResize));
 })();
+// Handle browser Back navigation with confirmation
+// Push dummy state to intercept back button
+history.pushState(null, document.title, location.href);
+window.addEventListener('popstate', () => {
+  const msg = 'Do you really want to leave this page? Unsaved changes will be lost.';
+  if (!confirm(msg)) {
+    // Cancel back navigation by re-pushing state
+    history.pushState(null, document.title, location.href);
+  }
+});
+// Handle F5 / Ctrl+R refresh with confirmation
+window.addEventListener('keydown', (e) => {
+  const key = e.key;
+  if (key === 'F5' || (e.ctrlKey && (key === 'r' || key === 'R'))) {
+    e.preventDefault();
+    const msg = 'Do you want to reload the page? Unsaved changes will be lost.';
+    if (confirm(msg)) {
+      location.reload();
+    }
+  }
+});
