@@ -29,6 +29,7 @@ let backgroundImg = null;
 let backgroundVisible = true;
 let backgroundOpacity = 1;
 let backgroundOffset = { x: 0, y: 0 };
+let backgroundScale = 1;
 // Onion skin state
 let onionEnabled = false;
 let onionOpacity = 0.5;
@@ -143,6 +144,7 @@ if (document.getElementById('canvas-pixel-unit')) {
   const canvasBgColorInput = document.getElementById('canvas-bg-color');
   const bgOffsetXInput = document.getElementById('background-offset-x');
   const bgOffsetYInput = document.getElementById('background-offset-y');
+  const bgScaleInput = document.getElementById('background-scale');
 /** Populate canvas settings inputs from project.canvas */
 function updateCanvasSettingsPanel() {
   const cs = project.canvas;
@@ -151,6 +153,7 @@ function updateCanvasSettingsPanel() {
     canvasBgColorInput.value = cs.backgroundColor;
     if (bgOffsetXInput) bgOffsetXInput.value = backgroundOffset.x;
     if (bgOffsetYInput) bgOffsetYInput.value = backgroundOffset.y;
+    if (bgScaleInput) bgScaleInput.value = backgroundScale;
 }
 // Initialize canvas settings panel
 updateCanvasSettingsPanel();
@@ -175,6 +178,12 @@ updateCanvasSettingsPanel();
   if (bgOffsetYInput) {
     bgOffsetYInput.addEventListener('input', () => {
       backgroundOffset.y = parseInt(bgOffsetYInput.value, 10) || 0;
+      renderCanvas();
+    });
+  }
+  if (bgScaleInput) {
+    bgScaleInput.addEventListener('input', () => {
+      backgroundScale = parseFloat(bgScaleInput.value) || 1;
       renderCanvas();
     });
   }
@@ -348,10 +357,11 @@ function renderCanvas() {
   // Draw background image full canvas with visibility and opacity
   if (backgroundImg && backgroundVisible) {
     ctx.globalAlpha = backgroundOpacity;
-    // Draw background image with user-defined offset
+    // Draw background image with user-defined offset and scale
     ctx.drawImage(backgroundImg,
                   backgroundOffset.x, backgroundOffset.y,
-                  canvas.width, canvas.height);
+                  canvas.width * backgroundScale,
+                  canvas.height * backgroundScale);
     ctx.globalAlpha = 1;
   }
   // Apply pan and zoom for pixel layers
