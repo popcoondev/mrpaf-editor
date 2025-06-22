@@ -343,6 +343,34 @@ let panX = 0, panY = 0;
 let isPanning = false;
 let panStart = { x: 0, y: 0 };
 let panOffsetStart = { x: 0, y: 0 };
+// Cursor hover position in layer coordinates
+let cursorLayer = { x: -1, y: -1 };
+
+/** Update cursorLayer based on mouse event */
+function updateCursor(e) {
+  const rect = canvas.getBoundingClientRect();
+  const canvasX = e.clientX - rect.left;
+  const canvasY = e.clientY - rect.top;
+  const baseW = project.canvas.baseWidth;
+  const baseH = project.canvas.baseHeight;
+  const pixelSize = Math.floor(Math.min(canvas.width / baseW, canvas.height / baseH));
+  const worldX = (canvasX - panX) / zoom;
+  const worldY = (canvasY - panY) / zoom;
+  const gridX = worldX / pixelSize;
+  const gridY = worldY / pixelSize;
+  const layer = project.layers[currentLayerIndex];
+  if (!layer) { cursorLayer = { x: -1, y: -1 }; return; }
+  const res = layer.resolution || { pixelArraySize: { width: baseW, height: baseH }, scale: 1 };
+  const scale = res.scale;
+  const offset = layer.placement || { x: 0, y: 0 };
+  const lx = Math.floor((gridX - offset.x) / scale);
+  const ly = Math.floor((gridY - offset.y) / scale);
+  if (lx >= 0 && ly >= 0 && lx < res.pixelArraySize.width && ly < res.pixelArraySize.height) {
+    cursorLayer = { x: lx, y: ly };
+  } else {
+    cursorLayer = { x: -1, y: -1 };
+  }
+}
 
 // Render canvas with zoom and pan
 function renderCanvas() {
@@ -417,6 +445,22 @@ function renderCanvas() {
       ctx.beginPath(); ctx.moveTo(x0, gy); ctx.lineTo(x1, gy); ctx.stroke();
     }
   });
+  // Draw hover cursor overlay for pen/eraser
+  if ((tool === 'pen' || tool === 'eraser') && cursorLayer.x >= 0) {
+    const layer = project.layers[currentLayerIndex];
+    const res = layer.resolution || { pixelArraySize: { width: baseW, height: baseH }, scale: 1 };
+    const scale = res.scale;
+    const offset = layer.placement || { x: 0, y: 0 };
+    ctx.save();
+    ctx.strokeStyle = '#f00';
+    ctx.setLineDash([4 / zoom]);
+    ctx.lineWidth = 1 / zoom;
+    const x0 = (offset.x + cursorLayer.x * scale) * pixelSize;
+    const y0 = (offset.y + cursorLayer.y * scale) * pixelSize;
+    const size = pixelSize * scale;
+    ctx.strokeRect(x0, y0, size, size);
+    ctx.restore();
+  }
 }
 
 /**
@@ -1688,6 +1732,8 @@ canvas.addEventListener('mousedown', (e) => {
   }
 });
 canvas.addEventListener('mousemove', (e) => {
+  // Update hover cursor
+  updateCursor(e);
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
