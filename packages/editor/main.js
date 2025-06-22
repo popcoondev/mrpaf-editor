@@ -1082,9 +1082,9 @@ removeFrameBtn.addEventListener('click', () => {
     alert('Cannot remove the last frame.');
     return;
   }
-  // Remove currently selected frame
+  // Remove currently selected frame via filter
   const removeIdx = currentFrameIndex;
-  project.frames.splice(removeIdx, 1);
+  project.frames = project.frames.filter((_, idx) => idx !== removeIdx);
   // After removal, select next frame (or last if removed was last)
   const newIdx = Math.min(removeIdx, project.frames.length - 1);
   setFrame(newIdx);
