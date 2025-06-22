@@ -912,10 +912,25 @@ document.getElementById('remove-layer')?.addEventListener('click', () => {
 });
 
 // Current tool state
-// Current primary tool: 'pen' or 'eraser' or 'colorpicker'
+// Current primary tool: 'pen', 'eraser', 'line', 'bucket', 'colorpicker', or 'pan'
 let tool = 'pen';
 // Remember last pen/eraser mode to apply shape tools accordingly
 let lastMode = 'pen';
+/** Update tool button UI to reflect current tool */
+function updateToolUI() {
+  const map = {
+    pen: 'pen',
+    eraser: 'eraser',
+    line: 'line',
+    bucket: 'bucket',
+    colorpicker: 'color-picker',
+    pan: 'pan'
+  };
+  const activeId = map[tool];
+  document.querySelectorAll('#tool-controls button').forEach(btn => {
+    btn.classList.toggle('active', btn.id === activeId);
+  });
+}
 // Symmetry mode: none, vertical, horizontal, both
 let symmetryMode = 'none';
 // For line tool: store starting point
@@ -944,12 +959,12 @@ function drawLine(x0, y0, x1, y1) {
     if (e2 <= dx) { err += dx; y0 += sy; }
   }
 }
-document.getElementById('pen')?.addEventListener('click', () => { tool = 'pen'; lastMode = 'pen'; });
-document.getElementById('eraser')?.addEventListener('click', () => { tool = 'eraser'; lastMode = 'eraser'; });
+document.getElementById('pen')?.addEventListener('click', () => { tool = 'pen'; lastMode = 'pen'; updateToolUI(); });
+document.getElementById('eraser')?.addEventListener('click', () => { tool = 'eraser'; lastMode = 'eraser'; updateToolUI(); });
 // Line and bucket shape selectors
-document.getElementById('line')?.addEventListener('click', () => { tool = 'line'; lineStart = null; });
-document.getElementById('bucket')?.addEventListener('click', () => { tool = 'bucket'; });
-document.getElementById('color-picker')?.addEventListener('click', () => tool = 'colorpicker');
+document.getElementById('line')?.addEventListener('click', () => { tool = 'line'; lineStart = null; updateToolUI(); });
+document.getElementById('bucket')?.addEventListener('click', () => { tool = 'bucket'; updateToolUI(); });
+document.getElementById('color-picker')?.addEventListener('click', () => { tool = 'colorpicker'; updateToolUI(); });
 // Symmetry mode selector binding
 const symmetrySelect = document.getElementById('symmetry-mode');
 symmetrySelect.addEventListener('change', () => {
@@ -1260,7 +1275,7 @@ document.getElementById('clear')?.addEventListener('click', () => {
   renderCanvas();
 });
 // Zoom & pan tool bindings
-document.getElementById('pan')?.addEventListener('click', () => tool = 'pan');
+document.getElementById('pan')?.addEventListener('click', () => { tool = 'pan'; updateToolUI(); });
 document.getElementById('zoom-in').addEventListener('click', () => { zoom *= 1.2; renderCanvas(); });
 document.getElementById('zoom-out').addEventListener('click', () => { zoom /= 1.2; renderCanvas(); });
 document.getElementById('reset-zoom').addEventListener('click', () => { zoom = 1; panX = 0; panY = 0; renderCanvas(); });
@@ -1768,6 +1783,8 @@ canvas.addEventListener('click', (e) => {
 
 // 初回キャンバス描画
 renderCanvas();
+// Initialize tool button UI state
+updateToolUI();
 
 // Initialize right sidebar tab switching
 function initRightSidebarTabs() {
