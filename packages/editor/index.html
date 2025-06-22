@@ -58,6 +58,13 @@
           <input type="checkbox" id="onion-enable"> 
           <input type="range" id="onion-opacity" min="0" max="1" step="0.1" value="0.5">
         </label>
+        <!-- Brush shape selector -->
+        <label>Brush Shape: 
+          <select id="brush-shape">
+            <option value="square">Square</option>
+            <option value="circle">Circle</option>
+          </select>
+        </label>
       </div>
       <!-- Layer Controls -->
       <h2>Layers</h2>
@@ -188,7 +195,16 @@
                    <!-- Resources tab -->
                    <div class="tab-panel" data-tab="resources" style="display:none;">
                      <h2>Resources</h2>
-                     <p>Not yet implemented</p>
+                     <!-- Resource management controls -->
+                     <div id="resource-controls" style="margin-bottom:8px; display:flex; gap:4px;">
+                       <button id="add-resource">Add Resource</button>
+                       <button id="remove-resource">Remove Resource</button>
+                     </div>
+                     <ul id="resource-list" style="list-style:none; padding:0; margin:0;">
+                       <!-- Dynamically populated resource items -->
+                     </ul>
+                     <!-- Hidden file input for selecting resource files -->
+                     <input type="file" id="resource-file-input" multiple style="display:none" />
                    </div>
                    <!-- Animation tab -->
                    <div class="tab-panel" data-tab="animation" style="display:none;">
@@ -209,6 +225,16 @@
       <label><input type="checkbox" id="loop-check"> Loop</label>
       <label><input type="checkbox" id="pingpong-check"> PingPong</label>
       <label>Interp: <select id="interp-select"><option value="none">None</option><option value="linear">Linear</option></select></label>
+      <!-- Frame tags editor -->
+      <label style="margin-left:8px;">Tag: <input type="text" id="frame-tag-input" style="width:100px;" /></label>
+      <button id="add-frame-tag">Add Tag</button>
+      <button id="remove-frame-tag">Remove Tag</button>
+      <ul id="frame-tag-list" style="list-style:none; display:flex; gap:4px; margin:0 0 0 8px; padding:0;"></ul>
+      <!-- Frame events editor -->
+      <label style="margin-left:8px;">Event: <input type="text" id="frame-event-input" style="width:100px;" /></label>
+      <button id="add-frame-event">Add Event</button>
+      <button id="remove-frame-event">Remove Event</button>
+      <ul id="frame-event-list" style="list-style:none; display:flex; gap:4px; margin:0 0 0 8px; padding:0;"></ul>
     </div>
   </div>
   <!-- Hidden file input for JSON import -->
