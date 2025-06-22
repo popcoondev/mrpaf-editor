@@ -1078,8 +1078,14 @@ addFrameBtn.addEventListener('click', () => {
   setFrame(project.frames.length - 1);
 });
 removeFrameBtn.addEventListener('click', () => {
+  // Prevent deletion if only one frame
   if (project.frames.length <= 1) {
-    alert('Cannot remove the last frame.');
+    alert('Cannot remove the only remaining frame.');
+    return;
+  }
+  // Prevent deletion of the last frame in the sequence
+  if (currentFrameIndex === project.frames.length - 1) {
+    alert('Cannot remove the last frame. Select another frame to remove.');
     return;
   }
   // Remove currently selected frame via filter
