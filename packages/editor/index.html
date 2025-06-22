@@ -60,13 +60,19 @@
     <div id="left-panel">
       <!-- Tool Controls -->
       <div id="tool-controls">
-        <button id="pen">Pen</button>
-        <button id="eraser">Eraser</button>
-        <button id="line">Line</button>
-        <button id="bucket">Bucket</button>
-        <button id="color-picker">Color Picker</button>
-        <button id="pan">Pan</button>
-        <button id="clear">Clear</button>
+        <div id="tool-controls-draws">
+          <button id="pen">Pen</button>
+          <button id="eraser">Eraser</button>
+        </div>
+        <div id="tool-controls-shapes">
+          <button id="line">Line</button>
+          <button id="bucket">Bucket</button>
+        </div>
+        <div id="tool-controls-support">
+          <button id="color-picker">Color Picker</button>
+          <button id="pan">Pan</button>
+          <button id="clear">Clear</button>
+        </div>
         <label>Brush Size: <input type="number" id="brush-size" min="1" value="1" style="width:50px;"></label>
         <label>Symmetry: 
           <select id="symmetry-mode">
@@ -171,7 +177,11 @@
                        </label><br>
                        <label>
                          Background Opacity: <input type="range" id="background-opacity" min="0" max="1" step="0.01" value="1">
-                       </label>
+                       </label><br>
+                       <!-- Background Image Offset -->
+                       <label>Offset X: <input id="background-offset-x" type="number" value="0" style="width:60px;"></label>
+                       <label style="margin-left:8px;">Offset Y: <input id="background-offset-y" type="number" value="0" style="width:60px;"></label><br>
+                       <label>Scale: <input id="background-scale" type="number" min="0.1" step="0.1" value="1" style="width:60px;"></label>
                      </section>
                      <!-- Resolution Controls -->
                      <section id="resolution-controls" style="margin-top:16px;">
