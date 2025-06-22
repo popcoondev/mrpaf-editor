@@ -1085,8 +1085,8 @@ removeFrameBtn.addEventListener('click', () => {
   // Remove currently selected frame
   const removeIdx = currentFrameIndex;
   project.frames.splice(removeIdx, 1);
-  // Determine new selection: previous frame if exists, otherwise first
-  const newIdx = removeIdx > 0 ? removeIdx - 1 : 0;
+  // After removal, select next frame (or last if removed was last)
+  const newIdx = Math.min(removeIdx, project.frames.length - 1);
   setFrame(newIdx);
 });
 // Frame duration edit handler
