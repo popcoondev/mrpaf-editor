@@ -83,6 +83,7 @@ The following areas are not yet fully implemented. Each should be developed in i
   - [ ] Support layer hierarchy (parent), blending modes, and transform properties
   - [ ] Placement: anchor presets and allowSubPixel offsets
   - [ ] Resolution: compute and store `resolution.effectiveSize`
+  - [ ] Background image layer: support placement (x, y, width, height), anchor, allowSubPixel and transform properties (rotation, scaleX, scaleY, skewX, skewY)
 - Pixel data encoding
   - [ ] Support `raw`, `rle`, and `sparse` encodings
   - [ ] Implement `pixels.defaultValue` and `pixels.compression` fields
