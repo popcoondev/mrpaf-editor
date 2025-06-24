@@ -315,42 +315,76 @@ if (document.getElementById('canvas-width')) {
       alert('Invalid dimensions');
       return;
     }
+    // Resize project while preserving existing content
+    const oldWidth = project.canvas.baseWidth != null ? project.canvas.baseWidth : project.canvas.width;
+    const oldHeight = project.canvas.baseHeight != null ? project.canvas.baseHeight : project.canvas.height;
+    pushHistory();
+    // Update canvas dimensions
+    project.canvas.baseWidth = newWidth;
+    project.canvas.baseHeight = newHeight;
+    project.canvas.width = newWidth;
+    project.canvas.height = newHeight;
+    project.metadata.modified = new Date().toISOString();
+    // Resize each layer's pixel data and resolution
+    project.layers.forEach(layer => {
+      const res = layer.resolution || {};
+      const oldW = res.pixelArraySize?.width ?? oldWidth;
+      const oldH = res.pixelArraySize?.height ?? oldHeight;
+      const scale = typeof res.scale === 'number' ? res.scale : 1;
+      // Update resolution size
+      layer.resolution.pixelArraySize = { width: newWidth, height: newHeight };
+      if (layer.resolution.effectiveSize) {
+        layer.resolution.effectiveSize.width = newWidth * scale;
+        layer.resolution.effectiveSize.height = newHeight * scale;
+      }
+      // Resize pixel data array
+      if (layer.pixels && Array.isArray(layer.pixels.data)) {
+        const oldData = layer.pixels.data;
+        const defaultValue = null;
+        const newData = [];
+        for (let y = 0; y < newHeight; y++) {
+          for (let x = 0; x < newWidth; x++) {
+            if (y < oldH && x < oldW) {
+              newData.push(oldData[y * oldW + x]);
+            } else {
+              newData.push(defaultValue);
+            }
+          }
+        }
+        layer.pixels.data = newData;
+        if ('width' in layer.pixels) layer.pixels.width = newWidth;
+        if ('height' in layer.pixels) layer.pixels.height = newHeight;
+      }
+    });
+    // Update local width/height variables
     width = newWidth;
     height = newHeight;
-    project = createEmptyProject(width, height);
+    // Update UI and re-render
     syncLayerGridToggles();
-    undoStack = [];
-    redoStack = [];
-    currentColorIndex = 0;
-    currentLayerIndex = 0;
-    palette = project.palette;
-    renderPalette();
     renderLayers();
     renderCanvas();
-    updateUndoRedoButtons();
-    // Reset panels (if implemented)
-    if (typeof updateMetadataPanel === 'function') updateMetadataPanel();
-    if (typeof updateCanvasSettingsPanel === 'function') updateCanvasSettingsPanel();
-    if (typeof updateCoordSettingsPanel === 'function') updateCoordSettingsPanel();
-    if (typeof updateColorSpacePanel === 'function') updateColorSpacePanel();
-    if (typeof updateCompressionProfilePanel === 'function') updateCompressionProfilePanel();
-    project.palette.forEach(entry => updateColorSpaces(entry));
+    widthInput.value = newWidth;
+    heightInput.value = newHeight;
   });
 }
 // Zoom and pan state
+// Internal pixel zoom
 let zoom = 1;
 let panX = 0, panY = 0;
 let isPanning = false;
 let panStart = { x: 0, y: 0 };
 let panOffsetStart = { x: 0, y: 0 };
+// CSS scale for canvas element (container zoom)
+let containerScale = 1;
 // Cursor hover position in layer coordinates
 let cursorLayer = { x: -1, y: -1 };
 
 /** Update cursorLayer based on mouse event */
 function updateCursor(e) {
   const rect = canvas.getBoundingClientRect();
-  const canvasX = e.clientX - rect.left;
-  const canvasY = e.clientY - rect.top;
+  // Account for CSS scaling of canvas element
+  const canvasX = (e.clientX - rect.left) / containerScale;
+  const canvasY = (e.clientY - rect.top)  / containerScale;
   const baseW = project.canvas.baseWidth;
   const baseH = project.canvas.baseHeight;
   const pixelSize = Math.floor(Math.min(canvas.width / baseW, canvas.height / baseH));
@@ -382,14 +416,17 @@ function renderCanvas() {
     ctx.fillStyle = project.canvas.backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
-  // Draw background image full canvas with visibility and opacity
+  // Draw background image with visibility and opacity, preserving aspect ratio
   if (backgroundImg && backgroundVisible) {
     ctx.globalAlpha = backgroundOpacity;
-    // Draw background image with user-defined offset and scale
+    // Compute draw dimensions based on intrinsic size and scale
+    const imgW = backgroundImg.naturalWidth || backgroundImg.width;
+    const imgH = backgroundImg.naturalHeight || backgroundImg.height;
+    const drawW = imgW * backgroundScale;
+    const drawH = imgH * backgroundScale;
     ctx.drawImage(backgroundImg,
                   backgroundOffset.x, backgroundOffset.y,
-                  canvas.width * backgroundScale,
-                  canvas.height * backgroundScale);
+                  drawW, drawH);
     ctx.globalAlpha = 1;
   }
   // Apply pan and zoom for pixel layers
@@ -1431,7 +1468,69 @@ document.getElementById('clear')?.addEventListener('click', () => {
 document.getElementById('pan')?.addEventListener('click', () => { tool = 'pan'; updateToolUI(); });
 document.getElementById('zoom-in').addEventListener('click', () => { zoom *= 1.2; renderCanvas(); });
 document.getElementById('zoom-out').addEventListener('click', () => { zoom /= 1.2; renderCanvas(); });
-document.getElementById('reset-zoom').addEventListener('click', () => { zoom = 1; panX = 0; panY = 0; renderCanvas(); });
+ document.getElementById('reset-zoom').addEventListener('click', () => { zoom = 1; panX = 0; panY = 0; renderCanvas(); });
+// Canvas zoom & drag tool bindings (scales and moves the canvas element)
+// Canvas zoom & drag tool bindings (scales and moves the canvas element)
+(function() {
+  const canvasEl = document.getElementById('canvas');
+  // Translation offset for canvas element
+  let canvasOffset = { x: 0, y: 0 };
+  function updateCanvasTransform() {
+    if (canvasEl) {
+      canvasEl.style.transform = `translate(${canvasOffset.x}px, ${canvasOffset.y}px) scale(${containerScale})`;
+    }
+  }
+  if (canvasEl) {
+    canvasEl.style.transformOrigin = 'center center';
+  }
+  document.getElementById('container-zoom-in')?.addEventListener('click', () => {
+    containerScale *= 1.2;
+    updateCanvasTransform();
+  });
+  document.getElementById('container-zoom-out')?.addEventListener('click', () => {
+    containerScale /= 1.2;
+    updateCanvasTransform();
+  });
+  document.getElementById('container-reset-zoom')?.addEventListener('click', () => {
+    // Reset both container zoom scale and position offset
+    containerScale = 1;
+    canvasOffset = { x: 0, y: 0 };
+    updateCanvasTransform();
+  });
+  // Drag to move canvas
+  let isDraggingCanvas = false;
+  let dragStart = { x: 0, y: 0 };
+  let offsetStart = { x: 0, y: 0 };
+  const containerEl = document.getElementById('canvas-container');
+  // Mouse wheel to zoom container
+  containerEl?.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY;
+    // Use a smaller zoom step for less sensitivity
+    const factor = 1.1;
+    if (delta < 0) containerScale *= factor;
+    else containerScale /= factor;
+    updateCanvasTransform();
+  });
+  // Mouse drag to move canvas (only when clicking container background)
+  containerEl?.addEventListener('mousedown', (e) => {
+    if (e.target !== containerEl) return;
+    isDraggingCanvas = true;
+    dragStart = { x: e.clientX, y: e.clientY };
+    offsetStart = { x: canvasOffset.x, y: canvasOffset.y };
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!isDraggingCanvas) return;
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    canvasOffset = { x: offsetStart.x + dx, y: offsetStart.y + dy };
+    updateCanvasTransform();
+  });
+  document.addEventListener('mouseup', () => {
+    isDraggingCanvas = false;
+  });
+})();
 document.getElementById('export').addEventListener('click', () => {
   const json = JSON.stringify(project, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
@@ -1644,6 +1743,17 @@ bgFileInput.addEventListener('change', (e) => {
       pushHistory();
       backgroundImg = img;
       project.backgroundImage = dataUrl;
+      // Initialize background scale and offset (no auto-fit)
+      backgroundScale = 1;
+      backgroundOffset.x = 0;
+      backgroundOffset.y = 0;
+      // Update UI inputs
+      const bgScaleInput = document.getElementById('background-scale');
+      const bgOffsetXInput = document.getElementById('background-offset-x');
+      const bgOffsetYInput = document.getElementById('background-offset-y');
+      if (bgScaleInput) bgScaleInput.value = backgroundScale;
+      if (bgOffsetXInput) bgOffsetXInput.value = backgroundOffset.x;
+      if (bgOffsetYInput) bgOffsetYInput.value = backgroundOffset.y;
       renderCanvas();
     };
     img.src = dataUrl;
@@ -1734,8 +1844,9 @@ document.getElementById('load-local').addEventListener('click', () => {
 let isDrawing = false;
 canvas.addEventListener('mousedown', (e) => {
   const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
+  // Adjust for CSS scaling of canvas element
+  const x = (e.clientX - rect.left) / containerScale;
+  const y = (e.clientY - rect.top)  / containerScale;
   if ((tool === 'pen' || tool === 'eraser') && e.button === 0) {
     // Start drawing
     isDrawing = true;
@@ -1751,8 +1862,8 @@ canvas.addEventListener('mousemove', (e) => {
   // Update hover cursor
   updateCursor(e);
   const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
+  const x = (e.clientX - rect.left) / containerScale;
+  const y = (e.clientY - rect.top)  / containerScale;
   if (isDrawing) {
     handleBrush(x, y);
   } else if (isPanning) {
@@ -1771,8 +1882,8 @@ canvas.addEventListener('click', (e) => {
   if (tool === 'pen' || tool === 'eraser') return;
   // Convert screen click to layer pixel coordinates (pan/zoom + resolution scale)
   const rect = canvas.getBoundingClientRect();
-  const canvasX = e.clientX - rect.left;
-  const canvasY = e.clientY - rect.top;
+  const canvasX = (e.clientX - rect.left) / containerScale;
+  const canvasY = (e.clientY - rect.top)  / containerScale;
   const worldX = (canvasX - panX) / zoom;
   const worldY = (canvasY - panY) / zoom;
   const pixelSize = Math.floor(Math.min(canvas.width / width, canvas.height / height));

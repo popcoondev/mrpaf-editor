@@ -9,7 +9,7 @@
     #top-toolbar, #bottom-toolbar { background:#f4f4f4; padding:4px 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
     #main-container { flex:1; display:flex; overflow:hidden; }
     #left-panel, #right-panel { width:200px; overflow-y:auto; padding:8px; border:1px solid #ccc; }
-    #canvas-container { flex:1; display:flex; justify-content:center; align-items:center; background:#e0e0e0; }
+    #canvas-container { flex:1; display:flex; justify-content:center; align-items:center; background:#e0e0e0; overflow:hidden; }
     canvas { border:1px solid #000; }
     /* Removed footer styling per new layout */
     /* Active button styling */
@@ -53,6 +53,9 @@
     <button id="zoom-in">Zoom In</button>
     <button id="zoom-out">Zoom Out</button>
     <button id="reset-zoom">Reset View</button>
+    <button id="container-zoom-in">Container Zoom In</button>
+    <button id="container-zoom-out">Container Zoom Out</button>
+    <button id="container-reset-zoom">Reset Container Zoom</button>
     <button id="play">Play</button>
     <label>FPS: <input type="number" id="fps-input" min="1" max="60" value="2" style="width:50px;"></label>
   </div>
