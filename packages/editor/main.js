@@ -38,6 +38,12 @@ let onionOpacity = 0.5;
 let width = 16;
 let height = 16;
 
+// STL Export Settings
+const STL_SETTINGS = {
+  layerHeight: 0.4,    // mm per layer
+  pixelSize: 1.2      // mm per pixel (width/height)
+};
+
 // Create a new project
 // Initialize project and per-layer grid toggles
 // Create a new project and initialize animation timeline
@@ -1672,6 +1678,332 @@ document.getElementById('export-gif').addEventListener('click', () => {
     .catch(err => {
       alert('Failed to load GIF worker script: ' + err);
     });
+});
+
+// STL Export functionality
+function generateSTLGeometry(project) {
+  const triangles = [];
+  const { layerHeight, pixelSize } = STL_SETTINGS;
+
+  console.log('STL_SETTINGS:', STL_SETTINGS);
+  console.log('Processing', project.layers.length, 'layers');
+
+  // Determine overall project dimensions for the height map
+  const baseWidth = project.canvas.baseWidth;
+  const baseHeight = project.canvas.baseHeight;
+
+  // Step 1: Create a combined height map
+  const { heightMap, fineWidth, fineHeight, minScale } = generateHeightMap(project, baseWidth, baseHeight, pixelSize);
+
+  // Step 2: Generate mesh from the height map
+  const finePixelSize = pixelSize * minScale;
+  const generatedTriangles = generateMeshFromHeightMap(heightMap, layerHeight, finePixelSize, fineWidth, fineHeight);
+  triangles.push(...generatedTriangles);
+
+  return triangles;
+}
+
+// New function to generate the height map
+function generateHeightMap(project, baseWidth, baseHeight, pixelSize) {
+  // Find the minimum scale to determine the finest resolution needed
+  let minScale = 1.0;
+  project.layers.forEach(layer => {
+    if (layer.visible && layer.resolution && layer.resolution.scale) {
+      minScale = Math.min(minScale, layer.resolution.scale);
+    }
+  });
+
+  // Calculate the dimensions of the height map at the finest resolution
+  const fineWidth = Math.ceil(baseWidth / minScale);
+  const fineHeight = Math.ceil(baseHeight / minScale);
+  
+  // Initialize height map with -1 (no pixel)
+  const heightMap = Array(fineHeight).fill(0).map(() => Array(fineWidth).fill(-1));
+
+  console.log(`Height map dimensions: ${fineWidth}x${fineHeight} (minScale: ${minScale})`);
+
+  project.layers.forEach((layer, layerIndex) => {
+    if (!layer.visible || !layer.pixels || !layer.pixels.data || !layer.resolution || !layer.resolution.pixelArraySize) {
+      return; // Skip invalid layers
+    }
+
+    const { resolution, placement, pixels } = layer;
+    const { pixelArraySize, scale } = resolution;
+    const { width, height } = pixelArraySize;
+    const { data } = pixels;
+
+    const layerScale = scale || 1.0;
+    console.log(`Processing layer ${layerIndex}: ${width}x${height}, scale: ${layerScale}`);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const pixelIndex = y * width + x;
+        const pixelValue = data[pixelIndex];
+
+        if (pixelValue === null || pixelValue === 0) continue; // Skip transparent pixels
+
+        // Calculate how many fine grid cells this pixel covers
+        const cellsPerPixel = layerScale / minScale;
+        
+        // Calculate the position in the fine grid
+        const placementX = (placement?.x || 0) / minScale;
+        const placementY = (placement?.y || 0) / minScale;
+        
+        const fineXStart = Math.floor(placementX + (x * cellsPerPixel));
+        const fineYStart = Math.floor(placementY + (y * cellsPerPixel));
+        const fineXEnd = Math.floor(fineXStart + cellsPerPixel);
+        const fineYEnd = Math.floor(fineYStart + cellsPerPixel);
+
+        // Update all fine grid cells covered by this layer's pixel
+        for (let fy = fineYStart; fy < fineYEnd; fy++) {
+          for (let fx = fineXStart; fx < fineXEnd; fx++) {
+            if (fx >= 0 && fx < fineWidth && fy >= 0 && fy < fineHeight) {
+              heightMap[fy][fx] = Math.max(heightMap[fy][fx], layerIndex);
+            }
+          }
+        }
+      }
+    }
+  });
+  
+  return { heightMap, fineWidth, fineHeight, minScale };
+}
+
+// New function to generate mesh from height map
+function generateMeshFromHeightMap(heightMap, layerHeight, pixelSize, baseWidth, baseHeight) {
+  const triangles = [];
+
+  // Helper to add a quad (two triangles)
+  const addQuad = (v0, v1, v2, v3, normal) => {
+    triangles.push({ normal: normal, vertices: [v0, v1, v2] });
+    triangles.push({ normal: normal, vertices: [v0, v2, v3] });
+  };
+
+  // Iterate through each cell in the height map
+  for (let y = 0; y < baseHeight; y++) {
+    for (let x = 0; x < baseWidth; x++) {
+      const currentHeight = heightMap[y][x];
+
+      if (currentHeight === -1) continue; // No pixel at this base grid location
+
+      const zBottom = currentHeight * layerHeight;
+      const zTop = zBottom + layerHeight;
+
+      // World coordinates for the current base pixel
+      const xMin = x * pixelSize;
+      const yMin = y * pixelSize;
+      const xMax = (x + 1) * pixelSize;
+      const yMax = (y + 1) * pixelSize;
+
+      // Vertices for the current base pixel column
+      const v = [
+        [xMin, yMin, zBottom], // 0: bottom-front-left
+        [xMax, yMin, zBottom], // 1: bottom-front-right
+        [xMax, yMax, zBottom], // 2: bottom-back-right
+        [xMin, yMax, zBottom], // 3: bottom-back-left
+        [xMin, yMin, zTop],    // 4: top-front-left
+        [xMax, yMin, zTop],    // 5: top-front-right
+        [xMax, yMax, zTop],    // 6: top-back-right
+        [xMin, yMax, zTop]     // 7: top-back-left
+      ];
+
+      // 1. Top face
+      addQuad(v[4], v[5], v[6], v[7], [0, 0, 1]); // Normal pointing up
+
+      // 2. Bottom face (only if it's the lowest point or no pixel below)
+      if (currentHeight === 0 || (y > 0 && heightMap[y-1][x] < currentHeight) || (x > 0 && heightMap[y][x-1] < currentHeight) || (y < baseHeight - 1 && heightMap[y+1][x] < currentHeight) || (x < baseWidth - 1 && heightMap[y][x+1] < currentHeight)) {
+        // This condition for bottom face is tricky. A simpler approach for now:
+        // Only generate bottom face if currentHeight is 0 (base layer)
+        // Or if there's no pixel below it in the height map (i.e., heightMap[y][x] is the lowest point in its column)
+        // For now, let's just generate if currentHeight is 0.
+        if (currentHeight === 0) {
+            addQuad(v[0], v[3], v[2], v[1], [0, 0, -1]); // Normal pointing down
+        }
+      }
+
+
+      // 3. Side faces (check neighbors)
+      // Right side (x+1)
+      const rightNeighborHeight = (x + 1 < baseWidth) ? heightMap[y][x + 1] : -1;
+      if (rightNeighborHeight < currentHeight) {
+        const neighborZTop = rightNeighborHeight >= 0 ? (rightNeighborHeight * layerHeight + layerHeight) : 0;
+        const v_right_bottom_front = [xMax, yMin, neighborZTop];
+        const v_right_bottom_back = [xMax, yMax, neighborZTop];
+        addQuad(v[5], v[6], v_right_bottom_back, v_right_bottom_front, [1, 0, 0]); // Normal pointing right
+      }
+
+      // Left side (x-1)
+      const leftNeighborHeight = (x - 1 >= 0) ? heightMap[y][x - 1] : -1;
+      if (leftNeighborHeight < currentHeight) {
+        const neighborZTop = leftNeighborHeight >= 0 ? (leftNeighborHeight * layerHeight + layerHeight) : 0;
+        const v_left_bottom_front = [xMin, yMin, neighborZTop];
+        const v_left_bottom_back = [xMin, yMax, neighborZTop];
+        addQuad(v[4], v_left_bottom_front, v_left_bottom_back, v[7], [-1, 0, 0]); // Normal pointing left
+      }
+
+      // Front side (y-1)
+      const frontNeighborHeight = (y - 1 >= 0) ? heightMap[y - 1][x] : -1;
+      if (frontNeighborHeight < currentHeight) {
+        const neighborZTop = frontNeighborHeight >= 0 ? (frontNeighborHeight * layerHeight + layerHeight) : 0;
+        const v_front_bottom_left = [xMin, yMin, neighborZTop];
+        const v_front_bottom_right = [xMax, yMin, neighborZTop];
+        addQuad(v[4], v_front_bottom_left, v_front_bottom_right, v[5], [0, -1, 0]); // Normal pointing front
+      }
+
+      // Back side (y+1)
+      const backNeighborHeight = (y + 1 < baseHeight) ? heightMap[y + 1][x] : -1;
+      if (backNeighborHeight < currentHeight) {
+        const neighborZTop = backNeighborHeight >= 0 ? (backNeighborHeight * layerHeight + layerHeight) : 0;
+        const v_back_bottom_left = [xMin, yMax, neighborZTop];
+        const v_back_bottom_right = [xMax, yMax, neighborZTop];
+        addQuad(v[7], v[6], v_back_bottom_right, v_back_bottom_left, [0, 1, 0]); // Normal pointing back
+      }
+    }
+  }
+
+  // Add a single bottom plane for the entire model if any pixel exists at layer 0
+  let hasBaseLayerPixel = false;
+  for (let y = 0; y < baseHeight; y++) {
+    for (let x = 0; x < baseWidth; x++) {
+      if (heightMap[y][x] >= 0) { // Any pixel exists
+        hasBaseLayerPixel = true;
+        break;
+      }
+    }
+    if (hasBaseLayerPixel) break;
+  }
+
+  if (hasBaseLayerPixel) {
+    // Create a single large bottom face for the entire base area
+    // This assumes the model sits on a flat plane.
+    // Vertices for the overall bottom plane
+    const v0 = [0, 0, 0]; // bottom-front-left of overall model
+    const v1 = [baseWidth * pixelSize, 0, 0]; // bottom-front-right
+    const v2 = [baseWidth * pixelSize, baseHeight * pixelSize, 0]; // bottom-back-right
+    const v3 = [0, baseHeight * pixelSize, 0]; // bottom-back-left
+    addQuad(v0, v3, v2, v1, [0, 0, -1]); // Normal pointing down
+  }
+
+
+  return triangles;
+}
+
+function calculateNormal(v1, v2, v3) {
+  // Calculate two edge vectors
+  const edge1 = [v2[0] - v1[0], v2[1] - v1[1], v2[2] - v1[2]];
+  const edge2 = [v3[0] - v1[0], v3[1] - v1[1], v3[2] - v1[2]];
+  
+  // Cross product to get normal
+  const normal = [
+    edge1[1] * edge2[2] - edge1[2] * edge2[1],
+    edge1[2] * edge2[0] - edge1[0] * edge2[2],
+    edge1[0] * edge2[1] - edge1[1] * edge2[0]
+  ];
+  
+  // Normalize
+  const length = Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+  if (length > 0) {
+    normal[0] /= length;
+    normal[1] /= length;
+    normal[2] /= length;
+  }
+  
+  return normal;
+}
+
+function generateSTLBinary(triangles) {
+  // STL Binary format:
+  // - 80 byte header
+  // - 4 byte triangle count (little-endian)
+  // - For each triangle:
+  //   - 12 bytes: normal vector (3 floats)
+  //   - 36 bytes: 3 vertices (9 floats)
+  //   - 2 bytes: attribute byte count (usually 0)
+  
+  const triangleCount = triangles.length;
+  const headerSize = 80;
+  const countSize = 4;
+  const triangleSize = 50; // 12 + 36 + 2 bytes per triangle
+  const totalSize = headerSize + countSize + (triangleCount * triangleSize);
+  
+  const buffer = new ArrayBuffer(totalSize);
+  const view = new DataView(buffer);
+  let offset = 0;
+  
+  // Write 80-byte header (filled with zeros)
+  const header = `STL generated by MRPAF Editor - ${triangleCount} triangles`;
+  const headerBytes = new TextEncoder().encode(header);
+  for (let i = 0; i < Math.min(headerBytes.length, 80); i++) {
+    view.setUint8(offset + i, headerBytes[i]);
+  }
+  offset += 80;
+  
+  // Write triangle count (little-endian 32-bit integer)
+  view.setUint32(offset, triangleCount, true);
+  offset += 4;
+  
+  // Write triangles
+  triangles.forEach(triangle => {
+    // Write normal vector (3 x 32-bit float, little-endian)
+    view.setFloat32(offset, triangle.normal[0], true);
+    view.setFloat32(offset + 4, triangle.normal[1], true);
+    view.setFloat32(offset + 8, triangle.normal[2], true);
+    offset += 12;
+    
+    // Write vertices (3 vertices x 3 coordinates x 32-bit float)
+    triangle.vertices.forEach(vertex => {
+      view.setFloat32(offset, vertex[0], true);
+      view.setFloat32(offset + 4, vertex[1], true);
+      view.setFloat32(offset + 8, vertex[2], true);
+      offset += 12;
+    });
+    
+    // Write attribute byte count (16-bit integer, usually 0)
+    view.setUint16(offset, 0, true);
+    offset += 2;
+  });
+  
+  return buffer;
+}
+
+function exportSTL() {
+  try {
+    console.log('STL Export started');
+    console.log('Project:', project);
+    console.log('Project layers:', project.layers);
+    
+    // Generate 3D geometry from current project
+    const triangles = generateSTLGeometry(project);
+    console.log('Generated triangles:', triangles.length);
+    
+    if (triangles.length === 0) {
+      alert('No visible pixels found to export. Please ensure you have drawn something on visible layers.');
+      return;
+    }
+    
+    // Generate binary STL data
+    const stlBuffer = generateSTLBinary(triangles);
+    
+    // Create and download file
+    const blob = new Blob([stlBuffer], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${project.metadata.title || 'pixel-art'}.stl`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    console.log(`STL exported: ${triangles.length} triangles`);
+  } catch (error) {
+    console.error('STL export failed:', error);
+    alert('STL export failed: ' + error.message);
+  }
+}
+
+// STL Export button event listener
+document.getElementById('export-stl').addEventListener('click', () => {
+  console.log('STL Export button clicked');
+  exportSTL();
 });
 // Import JSON functionality
 // File input used for importing MRPAF JSON (.mrpaf/.json)
