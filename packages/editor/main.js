@@ -1722,18 +1722,19 @@ function generateHeightMap(project, baseWidth, baseHeight, pixelSize) {
 
   console.log(`Height map dimensions: ${fineWidth}x${fineHeight} (minScale: ${minScale})`);
 
-  project.layers.forEach((layer, layerIndex) => {
-    if (!layer.visible || !layer.pixels || !layer.pixels.data || !layer.resolution || !layer.resolution.pixelArraySize) {
-      return; // Skip invalid layers
-    }
-
+  // Process layers in reverse order so layer0 is at bottom, layer1 at top
+  const visibleLayers = project.layers.filter(layer => 
+    layer.visible && layer.pixels && layer.pixels.data && layer.resolution && layer.resolution.pixelArraySize
+  );
+  
+  visibleLayers.forEach((layer, visibleIndex) => {
     const { resolution, placement, pixels } = layer;
     const { pixelArraySize, scale } = resolution;
     const { width, height } = pixelArraySize;
     const { data } = pixels;
 
     const layerScale = scale || 1.0;
-    console.log(`Processing layer ${layerIndex}: ${width}x${height}, scale: ${layerScale}`);
+    console.log(`Processing layer ${visibleIndex}: ${width}x${height}, scale: ${layerScale}`);
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -1751,14 +1752,14 @@ function generateHeightMap(project, baseWidth, baseHeight, pixelSize) {
         
         const fineXStart = Math.floor(placementX + (x * cellsPerPixel));
         const fineYStart = Math.floor(placementY + (y * cellsPerPixel));
-        const fineXEnd = Math.floor(fineXStart + cellsPerPixel);
-        const fineYEnd = Math.floor(fineYStart + cellsPerPixel);
+        const fineXEnd = Math.ceil(fineXStart + cellsPerPixel);  // Changed to ceil for complete coverage
+        const fineYEnd = Math.ceil(fineYStart + cellsPerPixel);  // Changed to ceil for complete coverage
 
         // Update all fine grid cells covered by this layer's pixel
         for (let fy = fineYStart; fy < fineYEnd; fy++) {
           for (let fx = fineXStart; fx < fineXEnd; fx++) {
             if (fx >= 0 && fx < fineWidth && fy >= 0 && fy < fineHeight) {
-              heightMap[fy][fx] = Math.max(heightMap[fy][fx], layerIndex);
+              heightMap[fy][fx] = Math.max(heightMap[fy][fx], visibleIndex);
             }
           }
         }
@@ -1779,111 +1780,107 @@ function generateMeshFromHeightMap(heightMap, layerHeight, pixelSize, baseWidth,
     triangles.push({ normal: normal, vertices: [v0, v2, v3] });
   };
 
-  // Iterate through each cell in the height map
-  for (let y = 0; y < baseHeight; y++) {
-    for (let x = 0; x < baseWidth; x++) {
-      const currentHeight = heightMap[y][x];
+  // Generate solid blocks for each layer
+  const maxLayer = Math.max(...heightMap.flat().filter(h => h >= 0));
+  
+  for (let layer = 0; layer <= maxLayer; layer++) {
+    const zBottom = layer * layerHeight;
+    const zTop = zBottom + layerHeight;
+    
+    // Generate top and bottom faces for the entire layer
+    for (let y = 0; y < baseHeight; y++) {
+      for (let x = 0; x < baseWidth; x++) {
+        if (heightMap[y][x] >= layer) {
+          const xMin = x * pixelSize;
+          const yMin = (baseHeight - 1 - y) * pixelSize; // Y軸反転
+          const xMax = (x + 1) * pixelSize;
+          const yMax = (baseHeight - y) * pixelSize; // Y軸反転
 
-      if (currentHeight === -1) continue; // No pixel at this base grid location
+          // Top face (only if this is the highest layer for this position)
+          if (heightMap[y][x] === layer) {
+            const v_top = [
+              [xMin, yMin, zTop], // front-left
+              [xMax, yMin, zTop], // front-right
+              [xMax, yMax, zTop], // back-right
+              [xMin, yMax, zTop]  // back-left
+            ];
+            addQuad(v_top[0], v_top[1], v_top[2], v_top[3], [0, 0, 1]);
+          }
 
-      const zBottom = currentHeight * layerHeight;
-      const zTop = zBottom + layerHeight;
-
-      // World coordinates for the current base pixel
-      const xMin = x * pixelSize;
-      const yMin = y * pixelSize;
-      const xMax = (x + 1) * pixelSize;
-      const yMax = (y + 1) * pixelSize;
-
-      // Vertices for the current base pixel column
-      const v = [
-        [xMin, yMin, zBottom], // 0: bottom-front-left
-        [xMax, yMin, zBottom], // 1: bottom-front-right
-        [xMax, yMax, zBottom], // 2: bottom-back-right
-        [xMin, yMax, zBottom], // 3: bottom-back-left
-        [xMin, yMin, zTop],    // 4: top-front-left
-        [xMax, yMin, zTop],    // 5: top-front-right
-        [xMax, yMax, zTop],    // 6: top-back-right
-        [xMin, yMax, zTop]     // 7: top-back-left
-      ];
-
-      // 1. Top face
-      addQuad(v[4], v[5], v[6], v[7], [0, 0, 1]); // Normal pointing up
-
-      // 2. Bottom face (only if it's the lowest point or no pixel below)
-      if (currentHeight === 0 || (y > 0 && heightMap[y-1][x] < currentHeight) || (x > 0 && heightMap[y][x-1] < currentHeight) || (y < baseHeight - 1 && heightMap[y+1][x] < currentHeight) || (x < baseWidth - 1 && heightMap[y][x+1] < currentHeight)) {
-        // This condition for bottom face is tricky. A simpler approach for now:
-        // Only generate bottom face if currentHeight is 0 (base layer)
-        // Or if there's no pixel below it in the height map (i.e., heightMap[y][x] is the lowest point in its column)
-        // For now, let's just generate if currentHeight is 0.
-        if (currentHeight === 0) {
-            addQuad(v[0], v[3], v[2], v[1], [0, 0, -1]); // Normal pointing down
+          // Bottom face (only if this is the bottom layer or there's no pixel below)
+          if (layer === 0) {
+            const v_bottom = [
+              [xMin, yMin, zBottom], // front-left
+              [xMax, yMin, zBottom], // front-right
+              [xMax, yMax, zBottom], // back-right
+              [xMin, yMax, zBottom]  // back-left
+            ];
+            addQuad(v_bottom[0], v_bottom[3], v_bottom[2], v_bottom[1], [0, 0, -1]);
+          }
         }
       }
+    }
 
+    // Generate side faces for the layer
+    for (let y = 0; y < baseHeight; y++) {
+      for (let x = 0; x < baseWidth; x++) {
+        if (heightMap[y][x] >= layer) {
+          const xMin = x * pixelSize;
+          const yMin = (baseHeight - 1 - y) * pixelSize; // Y軸反転
+          const xMax = (x + 1) * pixelSize;
+          const yMax = (baseHeight - y) * pixelSize; // Y軸反転
 
-      // 3. Side faces (check neighbors)
-      // Right side (x+1)
-      const rightNeighborHeight = (x + 1 < baseWidth) ? heightMap[y][x + 1] : -1;
-      if (rightNeighborHeight < currentHeight) {
-        const neighborZTop = rightNeighborHeight >= 0 ? (rightNeighborHeight * layerHeight + layerHeight) : 0;
-        const v_right_bottom_front = [xMax, yMin, neighborZTop];
-        const v_right_bottom_back = [xMax, yMax, neighborZTop];
-        addQuad(v[5], v[6], v_right_bottom_back, v_right_bottom_front, [1, 0, 0]); // Normal pointing right
-      }
+          // Right side (x+1) - only generate face if neighbor is not at same or higher layer
+          const rightHeight = (x + 1 < baseWidth) ? heightMap[y][x + 1] : -1;
+          if (rightHeight < layer) {
+            const v_right = [
+              [xMax, yMin, zBottom], // bottom-front
+              [xMax, yMax, zBottom], // bottom-back
+              [xMax, yMax, zTop],    // top-back
+              [xMax, yMin, zTop]     // top-front
+            ];
+            addQuad(v_right[0], v_right[1], v_right[2], v_right[3], [1, 0, 0]);
+          }
 
-      // Left side (x-1)
-      const leftNeighborHeight = (x - 1 >= 0) ? heightMap[y][x - 1] : -1;
-      if (leftNeighborHeight < currentHeight) {
-        const neighborZTop = leftNeighborHeight >= 0 ? (leftNeighborHeight * layerHeight + layerHeight) : 0;
-        const v_left_bottom_front = [xMin, yMin, neighborZTop];
-        const v_left_bottom_back = [xMin, yMax, neighborZTop];
-        addQuad(v[4], v_left_bottom_front, v_left_bottom_back, v[7], [-1, 0, 0]); // Normal pointing left
-      }
+          // Left side (x-1)
+          const leftHeight = (x - 1 >= 0) ? heightMap[y][x - 1] : -1;
+          if (leftHeight < layer) {
+            const v_left = [
+              [xMin, yMin, zBottom], // bottom-front
+              [xMin, yMax, zBottom], // bottom-back
+              [xMin, yMax, zTop],    // top-back
+              [xMin, yMin, zTop]     // top-front
+            ];
+            addQuad(v_left[0], v_left[3], v_left[2], v_left[1], [-1, 0, 0]);
+          }
 
-      // Front side (y-1)
-      const frontNeighborHeight = (y - 1 >= 0) ? heightMap[y - 1][x] : -1;
-      if (frontNeighborHeight < currentHeight) {
-        const neighborZTop = frontNeighborHeight >= 0 ? (frontNeighborHeight * layerHeight + layerHeight) : 0;
-        const v_front_bottom_left = [xMin, yMin, neighborZTop];
-        const v_front_bottom_right = [xMax, yMin, neighborZTop];
-        addQuad(v[4], v_front_bottom_left, v_front_bottom_right, v[5], [0, -1, 0]); // Normal pointing front
-      }
+          // Front side (y-1)
+          const frontHeight = (y - 1 >= 0) ? heightMap[y - 1][x] : -1;
+          if (frontHeight < layer) {
+            const v_front = [
+              [xMin, yMin, zBottom], // bottom-left
+              [xMax, yMin, zBottom], // bottom-right
+              [xMax, yMin, zTop],    // top-right
+              [xMin, yMin, zTop]     // top-left
+            ];
+            addQuad(v_front[0], v_front[1], v_front[2], v_front[3], [0, -1, 0]);
+          }
 
-      // Back side (y+1)
-      const backNeighborHeight = (y + 1 < baseHeight) ? heightMap[y + 1][x] : -1;
-      if (backNeighborHeight < currentHeight) {
-        const neighborZTop = backNeighborHeight >= 0 ? (backNeighborHeight * layerHeight + layerHeight) : 0;
-        const v_back_bottom_left = [xMin, yMax, neighborZTop];
-        const v_back_bottom_right = [xMax, yMax, neighborZTop];
-        addQuad(v[7], v[6], v_back_bottom_right, v_back_bottom_left, [0, 1, 0]); // Normal pointing back
+          // Back side (y+1)
+          const backHeight = (y + 1 < baseHeight) ? heightMap[y + 1][x] : -1;
+          if (backHeight < layer) {
+            const v_back = [
+              [xMin, yMax, zBottom], // bottom-left
+              [xMax, yMax, zBottom], // bottom-right
+              [xMax, yMax, zTop],    // top-right
+              [xMin, yMax, zTop]     // top-left
+            ];
+            addQuad(v_back[0], v_back[3], v_back[2], v_back[1], [0, 1, 0]);
+          }
+        }
       }
     }
   }
-
-  // Add a single bottom plane for the entire model if any pixel exists at layer 0
-  let hasBaseLayerPixel = false;
-  for (let y = 0; y < baseHeight; y++) {
-    for (let x = 0; x < baseWidth; x++) {
-      if (heightMap[y][x] >= 0) { // Any pixel exists
-        hasBaseLayerPixel = true;
-        break;
-      }
-    }
-    if (hasBaseLayerPixel) break;
-  }
-
-  if (hasBaseLayerPixel) {
-    // Create a single large bottom face for the entire base area
-    // This assumes the model sits on a flat plane.
-    // Vertices for the overall bottom plane
-    const v0 = [0, 0, 0]; // bottom-front-left of overall model
-    const v1 = [baseWidth * pixelSize, 0, 0]; // bottom-front-right
-    const v2 = [baseWidth * pixelSize, baseHeight * pixelSize, 0]; // bottom-back-right
-    const v3 = [0, baseHeight * pixelSize, 0]; // bottom-back-left
-    addQuad(v0, v3, v2, v1, [0, 0, -1]); // Normal pointing down
-  }
-
 
   return triangles;
 }
